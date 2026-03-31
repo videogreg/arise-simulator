@@ -3,11 +3,12 @@ const ctxSide = sideCanvas.getContext('2d');
 const topCanvas = document.getElementById('topView');
 const ctxTop = topCanvas.getContext('2d');
 
-// Constants
-const BARN_LENGTH = 100; // ft
-const BARN_WIDTH = 25;   // ft
-const APEX_HEIGHT = 11.5; // ft
-const ARCH_AREA = 192;   // sq ft
+// Fixed Barn Specifications
+const BARN_LENGTH = 100; 
+const BARN_WIDTH = 25;   
+const APEX_HEIGHT = 11.5; 
+const ARCH_AREA = 192;   
+const VOLUME = 20000;
 const CFM_PER_FAN = 22000; 
 
 let config = {
@@ -18,21 +19,34 @@ let config = {
 };
 
 function update() {
-    const totalCFM = config.fans * CFM_PER_FAN;
+    // 1. Calculate Core Metrics
+    let totalCFM = config.fans * CFM_PER_FAN;
+    
+    // Adjust CFM for Static Pressure if louver is closed
+    if (!config.passiveOpen) totalCFM *= 0.95; 
+
     const baffleFactor = (APEX_HEIGHT - config.baffleDrop) / APEX_HEIGHT;
-    const effectiveArea = ARCH_AREA * Math.pow(baffleFactor, 1.2);
+    const effectiveArea = ARCH_AREA * Math.pow(baffleFactor, 1.3);
     
     const windChill = totalCFM / effectiveArea;
-    const totalHeat = config.birds * 40; // BTU/hr
-    const tempRise = totalHeat / (1.08 * totalCFM);
-    const airEx = (20000 / totalCFM) * 60; // seconds
+    const totalHeatBTU = config.birds * 45; // 45 BTU/hr sensible heat per bird
+    const tempRise = totalHeatBTU / (1.08 * totalCFM);
+    const airEx = (VOLUME / totalCFM) * 60;
+    
+    // Static Pressure approximation (Pa)
+    const intakeArea = config.passiveOpen ? 136 : 96;
+    const faceVelocity = (totalCFM / intakeArea) / 196.85; // fpm to m/s
+    const staticPressure = 1.5 * Math.pow(faceVelocity, 2);
 
+    // 2. Update UI Metrics
     document.getElementById('windChill').innerText = Math.round(windChill);
     document.getElementById('tempRise').innerText = tempRise.toFixed(1);
     document.getElementById('airEx').innerText = Math.round(airEx);
+    document.getElementById('statPres').innerText = Math.round(staticPressure);
 
+    // 3. Render Visuals
     drawSide(windChill);
-    drawTop(tempRise);
+    drawTop(tempRise, windChill);
 }
 
 function drawSide(velocity) {
@@ -40,66 +54,111 @@ function drawSide(velocity) {
     const h = sideCanvas.height = sideCanvas.offsetHeight;
     ctxSide.clearRect(0,0,w,h);
 
-    // Draw Barn Outline
-    ctxSide.strokeStyle = '#666';
-    ctxSide.strokeRect(50, 50, w-100, h-100);
+    const padding = 60;
+    const innerW = w - (padding * 2);
+    const innerH = h - (padding * 2);
+
+    // Draw Barn Background Flow
+    let flowGrad = ctxSide.createLinearGradient(padding, 0, padding + innerW, 0);
+    let intensity = Math.min(velocity / 1000, 1);
+    flowGrad.addColorStop(0, `rgba(0, 100, 255, 0.1)`);
+    flowGrad.addColorStop(1, `rgba(0, 200, 255, ${0.2 + intensity * 0.5})`);
+    
+    ctxSide.fillStyle = flowGrad;
+    ctxSide.fillRect(padding, padding, innerW, innerH);
 
     // Draw Baffles
-    ctxSide.fillStyle = '#ff0000';
+    ctxSide.fillStyle = "#ff4444";
     [0.33, 0.66].forEach(pos => {
-        let x = 50 + (w-100) * pos;
-        ctxSide.fillRect(x, 50, 2, (h-100) * (config.baffleDrop / APEX_HEIGHT));
+        let bx = padding + (innerW * pos);
+        let bHeight = innerH * (config.baffleDrop / APEX_HEIGHT);
+        ctxSide.fillRect(bx, padding, 4, bHeight);
+        
+        // Draw Dead Zone behind baffle
+        let deadZoneGrad = ctxSide.createLinearGradient(bx, 0, bx + 60, 0);
+        deadZoneGrad.addColorStop(0, 'rgba(255, 150, 0, 0.4)');
+        deadZoneGrad.addColorStop(1, 'rgba(255, 150, 0, 0)');
+        ctxSide.fillStyle = deadZoneGrad;
+        ctxSide.fillRect(bx + 4, padding, 60, bHeight);
     });
 
-    // Draw Airflow Gradient
-    let grad = ctxSide.createLinearGradient(50, 0, w-100, 0);
-    // Color mapping: Higher velocity = Brighter Blue
-    let colorIntensity = Math.min(velocity / 10, 255);
-    grad.addColorStop(0, `rgba(0, 150, 255, 0.2)`);
-    grad.addColorStop(1, `rgba(0, ${colorIntensity}, 255, 0.8)`);
-    
-    ctxSide.fillStyle = grad;
-    ctxSide.fillRect(50, 50, w-100, h-100);
+    // Draw Ground Level (Bird Level)
+    ctxSide.fillStyle = "#333";
+    ctxSide.fillRect(padding, padding + innerH - 5, innerW, 5);
 
-    // Dead Zones (Behind baffles)
-    ctxSide.fillStyle = 'rgba(255, 165, 0, 0.4)'; // Orange stagnant zones
-    [0.33, 0.66].forEach(pos => {
-        let x = 50 + (w-100) * pos;
-        ctxSide.fillRect(x + 2, 50, 40, (h-100) * (config.baffleDrop / APEX_HEIGHT));
-    });
+    // Barn Labels
+    ctxSide.fillStyle = "#888";
+    ctxSide.font = "12px Arial";
+    ctxSide.fillText("INTAKE (RADIATORS)", padding, padding - 10);
+    ctxSide.fillText("EXHAUST FANS", padding + innerW - 80, padding - 10);
 }
 
-function drawTop(tRise) {
+function drawTop(tRise, velocity) {
     const w = topCanvas.width = topCanvas.offsetWidth;
     const h = topCanvas.height = topCanvas.offsetHeight;
     ctxTop.clearRect(0,0,w,h);
 
-    // Heat Gradient from Intake (Left) to Fans (Right)
-    let heatGrad = ctxTop.createLinearGradient(50, 0, w-50, 0);
-    heatGrad.addColorStop(0, '#00f'); // Cool intake
-    let heatColor = tRise > 5 ? '#f00' : '#ff0'; // Red if high delta, Yellow if low
-    heatGrad.addColorStop(1, heatColor);
+    const padding = 60;
+    const innerW = w - (padding * 2);
+    const innerH = h - (padding * 2);
 
-    ctxTop.fillStyle = heatGrad;
+    // 1. Dynamic Thermal Gradient (Heat Accumulation)
+    let thermalGrad = ctxTop.createLinearGradient(padding, 0, padding + innerW, 0);
+    thermalGrad.addColorStop(0, '#0066ff'); // Cool Start
+    
+    // Midpoint color based on temp rise
+    let midColor = tRise > 2.5 ? '#ffcc00' : '#00ffaa';
+    thermalGrad.addColorStop(0.6, midColor);
+    
+    // End color
+    let endColor = tRise > 5 ? '#ff3300' : (tRise > 2 ? '#ff9900' : '#00ffaa');
+    thermalGrad.addColorStop(1, endColor);
+
+    ctxTop.fillStyle = thermalGrad;
     ctxTop.globalAlpha = 0.6;
-    ctxTop.fillRect(50, 50, w-100, h-100);
+    ctxTop.fillRect(padding, padding, innerW, innerH);
+    ctxTop.globalAlpha = 1.0;
+
+    // 2. Draw Birds (White dots)
+    ctxTop.fillStyle = "rgba(255, 255, 255, 0.4)";
+    let birdDensity = Math.floor(config.birds / 15);
+    for(let i=0; i<birdDensity; i++) {
+        let rx = padding + (Math.random() * innerW);
+        let ry = padding + (Math.random() * innerH);
+        ctxTop.beginPath();
+        ctxTop.arc(rx, ry, 1.2, 0, Math.PI*2);
+        ctxTop.fill();
+    }
+
+    // 3. Draw Airflow Vectors
+    ctxTop.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctxTop.lineWidth = 1;
+    let spacing = 50;
+    for(let x = padding + 20; x < padding + innerW; x += spacing) {
+        for(let y = padding + 20; y < padding + innerH; y += 40) {
+            ctxTop.beginPath();
+            ctxTop.moveTo(x, y);
+            ctxTop.lineTo(x + (velocity/100), y);
+            ctxTop.stroke();
+        }
+    }
 }
 
-// Event Listeners
-document.getElementById('birdCount').oninput = (e) => { 
-    config.birds = e.target.value; 
+// Listeners
+document.getElementById('birdCount').oninput = (e) => {
+    config.birds = parseInt(e.target.value);
     document.getElementById('birdCountVal').innerText = config.birds;
-    update(); 
+    update();
 };
-document.getElementById('fanCount').oninput = (e) => { 
-    config.fans = e.target.value; 
+document.getElementById('fanCount').oninput = (e) => {
+    config.fans = parseInt(e.target.value);
     document.getElementById('fanCountVal').innerText = config.fans;
-    update(); 
+    update();
 };
-document.getElementById('baffleDrop').oninput = (e) => { 
-    config.baffleDrop = e.target.value; 
+document.getElementById('baffleDrop').oninput = (e) => {
+    config.baffleDrop = parseFloat(e.target.value);
     document.getElementById('baffleVal').innerText = config.baffleDrop;
-    update(); 
+    update();
 };
 document.getElementById('louverToggle').onclick = (e) => {
     config.passiveOpen = !config.passiveOpen;
@@ -109,3 +168,4 @@ document.getElementById('louverToggle').onclick = (e) => {
 };
 
 window.onload = update;
+window.onresize = update;

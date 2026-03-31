@@ -2,40 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ARISE Barn Simulator v4.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARISE Barn Simulator v4.0 | Greg Whiteside</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="sidebar">
-        <h1>ARISE Simulator</h1>
+        <h1>ARISE v4.0 <br><small>Barn Dynamics Simulator</small></h1>
+        
         <div class="control-group">
-            <label>Birds (Meat Chickens): <span id="birdCountVal">2400</span></label>
+            <label>Bird Population: <span id="birdCountVal">2400</span></label>
             <input type="range" id="birdCount" min="0" max="3000" value="2400">
         </div>
+
         <div class="control-group">
-            <label>Active Fans (48" Cone): <span id="fanCountVal">4</span></label>
+            <label>Active 48" Fans: <span id="fanCountVal">4</span></label>
             <input type="range" id="fanCount" min="1" max="6" value="4">
         </div>
+
         <div class="control-group">
             <label>Baffle Drop (ft): <span id="baffleVal">5</span></label>
             <input type="range" id="baffleDrop" min="0" max="8" value="5">
         </div>
+
         <div class="control-group">
-            <label>Passive Opening (2'x20')</label>
+            <label>Passive Vent (2'x20')</label>
             <button id="louverToggle">CLOSED</button>
         </div>
+
         <div id="metrics">
             <div class="metric-box">Wind-Chill: <b id="windChill">--</b> fpm</div>
-            <div class="metric-box">Temp Rise: <b id="tempRise">--</b> °F</div>
+            <div class="metric-box">Temp Rise (ΔT): <b id="tempRise">--</b> °F</div>
             <div class="metric-box">Air Exchange: <b id="airEx">--</b> sec</div>
+            <div class="metric-box">Static Pressure: <b id="statPres">--</b> Pa</div>
+        </div>
+        
+        <p style="font-size: 10px; color: #888; margin-top: 20px;">
+            Designed for Bahamas Tropical Climate Operations.
+        </p>
+    </div>
+
+    <div id="viewport">
+        <div class="canvas-container">
+            <h3>Longitudinal Side View (Laminar Flow & Dead Zones)</h3>
+            <canvas id="sideView"></canvas>
+        </div>
+        <div class="canvas-container">
+            <h3>Overhead Plan View (Thermal Gradient & Bird Density)</h3>
+            <canvas id="topView"></canvas>
         </div>
     </div>
-    <div id="viewport">
-        <h3>Longitudinal Side View (Laminar Flow)</h3>
-        <canvas id="sideView"></canvas>
-        <h3>Overhead Plan View (Thermal Distribution)</h3>
-        <canvas id="topView"></canvas>
-    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
