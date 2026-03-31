@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARISE Barn Simulator v4.0 | Greg Whiteside</title>
+    <title>ARISE v4.5 | Tropical Barn Simulator</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="sidebar">
-        <h1>ARISE v4.0 <br><small>Barn Dynamics Simulator</small></h1>
+        <h1>ARISE v4.5 <br><small>Tropical Dynamics Sim</small></h1>
         
         <div class="control-group">
             <label>Bird Population: <span id="birdCountVal">2400</span></label>
@@ -30,25 +31,44 @@
             <button id="louverToggle">CLOSED</button>
         </div>
 
+        <div class="control-group">
+            <label>Ambient Temp (°F): <span id="extTempVal">90</span></label>
+            <input type="range" id="extTemp" min="75" max="105" value="90">
+        </div>
+
+        <div class="control-group">
+            <label>Ambient Humidity (%): <span id="extHumVal">85</span></label>
+            <input type="range" id="extHum" min="40" max="100" value="85">
+        </div>
+
+        <div class="control-group">
+            <label>Pre-Cooling System</label>
+            <select id="preCooling">
+                <option value="0">None (Full Sun Exposure)</option>
+                <option value="4">Camo Netting (-4°F Shift)</option>
+                <option value="8">Living Trellis (-8°F Shift)</option>
+            </select>
+        </div>
+
         <div id="metrics">
             <div class="metric-box">Wind-Chill: <b id="windChill">--</b> fpm</div>
             <div class="metric-box">Temp Rise (ΔT): <b id="tempRise">--</b> °F</div>
+            <div class="metric-box">Ammonia at Fans: <b id="ammonia">--</b> ppm</div>
             <div class="metric-box">Air Exchange: <b id="airEx">--</b> sec</div>
-            <div class="metric-box">Static Pressure: <b id="statPres">--</b> Pa</div>
         </div>
         
-        <p style="font-size: 10px; color: #888; margin-top: 20px;">
-            Designed for Bahamas Tropical Climate Operations.
+        <p class="footer-note">
+            ARISE Bahamas Project | Physics-Based Digital Twin
         </p>
     </div>
 
     <div id="viewport">
         <div class="canvas-container">
-            <h3>Longitudinal Side View (Laminar Flow & Dead Zones)</h3>
+            <h3>Longitudinal Side View (Laminar Flow & Baffle Interaction)</h3>
             <canvas id="sideView"></canvas>
         </div>
         <div class="canvas-container">
-            <h3>Overhead Plan View (Thermal Gradient & Bird Density)</h3>
+            <h3>Overhead Plan View (Thermal Gradient & Ammonia Haze)</h3>
             <canvas id="topView"></canvas>
         </div>
     </div>
