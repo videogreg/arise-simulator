@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ARISE v4.51 | Fixed Interface</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="sidebar">
-        <h1>ARISE v4.51</h1>
+        <h1>ARISE v4.51 <br><small>Biosecurity & Climate Sim</small></h1>
         
         <div id="viability-index">
             STATUS: <span id="statusText">OPTIMAL</span>
@@ -21,13 +22,18 @@
         </div>
 
         <div class="control-group">
-            <label>Fans: <span id="fanCountVal">4</span></label>
+            <label>Fans (48" Cone): <span id="fanCountVal">4</span></label>
             <input type="range" id="fanCount" min="1" max="6" value="4">
         </div>
 
         <div class="control-group">
-            <label>Baffles: <span id="baffleVal">5</span></label>
+            <label>Baffle Drop (ft): <span id="baffleVal">5</span></label>
             <input type="range" id="baffleDrop" min="0" max="8" value="5">
+        </div>
+
+        <div class="control-group">
+            <label>Passive Vent (2'x20')</label>
+            <button id="louverToggle" class="toggle-btn">CLOSED</button>
         </div>
 
         <div class="control-group">
@@ -36,9 +42,14 @@
         </div>
 
         <div class="control-group">
+            <label>Ambient Humidity: <span id="extHumVal">85</span>%</label>
+            <input type="range" id="extHum" min="40" max="100" value="85">
+        </div>
+
+        <div class="control-group">
             <label>Pre-Cooling</label>
             <select id="preCooling">
-                <option value="0">None</option>
+                <option value="0">None (Full Sun)</option>
                 <option value="4">Camo Net (-4°F)</option>
                 <option value="8">Trellis (-8°F)</option>
             </select>
@@ -53,7 +64,7 @@
             </div>
 
             <div class="metric-summary" id="probeResults">
-                <h4>Point Probe</h4>
+                <h4>Point Probe (Click Map)</h4>
                 <div class="metric-box">Probe Temp: <b id="pTemp">--</b></div>
                 <div class="metric-box">Probe NH3: <b id="pAmmonia">--</b></div>
                 <div class="metric-box">Probe Hum: <b id="pHum">--</b></div>
@@ -63,11 +74,11 @@
 
     <div id="viewport">
         <div class="canvas-container">
-            <h3>Side View</h3>
+            <h3>Side View (Wind-Chill & Baffles)</h3>
             <canvas id="sideView"></canvas>
         </div>
         <div class="canvas-container">
-            <h3>Overhead View</h3>
+            <h3>Overhead View (Thermal & Ammonia)</h3>
             <canvas id="topView"></canvas>
         </div>
     </div>

@@ -9,10 +9,10 @@ let config = {
     baffleDrop: 5,
     extTemp: 90,
     extHum: 85,
-    preCoolEffect: 0
+    preCoolEffect: 0,
+    passiveOpen: false
 };
 
-// INITIALIZE CANVAS SIZE ONCE
 function resize() {
     sideCanvas.width = sideCanvas.clientWidth;
     sideCanvas.height = sideCanvas.clientHeight;
@@ -23,20 +23,24 @@ function resize() {
 
 function update() {
     const intakeTemp = config.extTemp - config.preCoolEffect;
-    const totalCFM = config.fans * 22000;
+    
+    // Physics Logic: Passive vent reduces radiator drag
+    let totalCFM = config.fans * 22000;
+    if (!config.passiveOpen) totalCFM *= 0.93;
+
     const effectiveArea = 192 * Math.pow((11.5 - config.baffleDrop) / 11.5, 1.3);
     const windChill = totalCFM / effectiveArea;
 
-    // Calculations
+    // Metabolic Accumulation
     const tempRiseTotal = (config.birds * 45) / (1.08 * totalCFM);
     const exitTemp = intakeTemp + tempRiseTotal;
     const ammoniaTotal = ((config.birds * 0.0005) / totalCFM) * 1000000;
     const exitHum = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM / 1000));
 
-    // UI Updates
-    document.getElementById('exTemp').innerText = exitTemp.toFixed(1);
-    document.getElementById('exAmmonia').innerText = ammoniaTotal.toFixed(1);
-    document.getElementById('exHum').innerText = Math.min(100, exitHum).toFixed(1);
+    // Summary UI
+    document.getElementById('exTemp').innerText = exitTemp.toFixed(1) + "°F";
+    document.getElementById('exAmmonia').innerText = ammoniaTotal.toFixed(1) + " ppm";
+    document.getElementById('exHum').innerText = Math.min(100, exitHum).toFixed(1) + "%";
 
     updateViability(exitTemp, ammoniaTotal);
     drawSide(windChill);
@@ -68,16 +72,17 @@ function handleCanvasClick(e, canvas) {
     const iw = canvas.width - (padding * 2);
     let pct = Math.max(0, Math.min(1, (x - padding) / iw));
 
-    const totalCFM = config.fans * 22000;
+    let totalCFM = config.fans * 22000;
+    if (!config.passiveOpen) totalCFM *= 0.93;
+
     const intakeTemp = config.extTemp - config.preCoolEffect;
-    
     const localT = intakeTemp + ((config.birds * 45) / (1.08 * totalCFM)) * pct;
     const localA = (((config.birds * 0.0005) / totalCFM) * 1000000) * pct;
     const localH = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM/1000)) * pct;
 
-    document.getElementById('pTemp').innerText = localT.toFixed(1);
-    document.getElementById('pAmmonia').innerText = localA.toFixed(1);
-    document.getElementById('pHum').innerText = Math.min(100, localH).toFixed(1);
+    document.getElementById('pTemp').innerText = localT.toFixed(1) + "°F";
+    document.getElementById('pAmmonia').innerText = localA.toFixed(1) + " ppm";
+    document.getElementById('pHum').innerText = Math.min(100, localH).toFixed(1) + "%";
 }
 
 function drawSide(vel) {
@@ -85,10 +90,8 @@ function drawSide(vel) {
     const p = 60;
     const iw = sideCanvas.width - (p*2);
     const ih = sideCanvas.height - (p*2);
-
     ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.4)})`;
     ctxSide.fillRect(p, p, iw, ih);
-    
     ctxSide.fillStyle = "#ff4444";
     [0.3, 0.6, 0.9].forEach(pos => {
         ctxSide.fillRect(p + iw*pos, p, 4, ih*(config.baffleDrop/11.5));
@@ -100,14 +103,12 @@ function drawTop(inT, outT, nh3, vel) {
     const p = 60;
     const iw = topCanvas.width - (p*2);
     const ih = topCanvas.height - (p*2);
-
     let tGrad = ctxTop.createLinearGradient(p, 0, p+iw, 0);
     tGrad.addColorStop(0, inT > 90 ? '#ff3300' : '#00ffff');
     tGrad.addColorStop(1, outT > 90 ? '#ff3300' : (outT > 85 ? '#ffcc00' : '#00ffaa'));
     ctxTop.globalAlpha = 0.5;
     ctxTop.fillStyle = tGrad;
     ctxTop.fillRect(p, p, iw, ih);
-
     ctxTop.globalAlpha = 1.0;
     ctxTop.fillStyle = "white";
     for(let i=0; i<30; i++) {
@@ -116,7 +117,7 @@ function drawTop(inT, outT, nh3, vel) {
     }
 }
 
-// Event Listeners
+// Global Listeners
 window.addEventListener('resize', resize);
 sideCanvas.addEventListener('mousedown', (e) => handleCanvasClick(e, sideCanvas));
 topCanvas.addEventListener('mousedown', (e) => handleCanvasClick(e, topCanvas));
@@ -125,8 +126,14 @@ document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.
 document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.value; document.getElementById('fanCountVal').innerText = e.target.value; update(); };
 document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.target.value; document.getElementById('baffleVal').innerText = e.target.value; update(); };
 document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); document.getElementById('extTempVal').innerText = e.target.value; update(); };
+document.getElementById('extHum').oninput = (e) => { config.extHum = e.target.value; document.getElementById('extHumVal').innerText = e.target.value; update(); };
 document.getElementById('preCooling').onchange = (e) => { config.preCoolEffect = parseInt(e.target.value); update(); };
+document.getElementById('louverToggle').onclick = (e) => {
+    config.passiveOpen = !config.passiveOpen;
+    e.target.innerText = config.passiveOpen ? "OPEN" : "CLOSED";
+    e.target.classList.toggle('active');
+    update();
+};
 
-// Kickoff
 resize();
-setInterval(update, 50); // Keep particles moving
+setInterval(update, 50);
