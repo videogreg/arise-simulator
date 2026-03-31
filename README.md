@@ -1,66 +1,75 @@
-README: ARISE Barn Simulator v4.0
-Project Overview
-The ARISE (Advanced Regenerative Intensive System Environment) Barn Simulator is a digital twin modeling tool designed to validate the thermal and aerodynamic performance of a unique hurricane-proof poultry structure. This simulator focuses on the interaction between hydronic cooling, tunnel ventilation, and internal airflow management for meat chicken production in high-humidity tropical climates (Bahamas).
-________________________________________
+README: ARISE Barn Simulator v4.51
+Project: Hydronic-Assisted Tunnel Ventilation System
+Region: Bahamas / Tropical High-Humidity Zones
+Developer: Greg Whiteside
+Version: 4.51 (Revised March 2026)
+
+Project Overview: The ARISE Barn Simulator is a digital twin modeling tool designed to validate the thermal and aerodynamic performance of a unique hurricane-proof poultry structure. This simulator focuses on the interaction between hydronic cooling, tunnel ventilation, and internal airflow management for meat chicken production in high-humidity tropical climates (Bahamas).
+
+User Interaction Instructions
+	Adjust Sliders: Move the environmental and mechanical sliders to observe real-time shifts in Exhaust levels and Viability Status.
+	Toggle Passive Vent: Use the "OPEN/CLOSED" button to see how reducing static pressure increases air velocity and lowers ammonia levels.
+	Point Probe: Click anywhere on the Side View or Overhead View canvas to see the specific conditions (Temp, NH3, Humidity) at that exact linear foot of the barn.
+
 1. System Components
-1.1 Structural Geometry
-•	Form Factor: Arch-shaped tunnel (Category 4 Hurricane Proof).
-•	Dimensions: 25' Wide x 100' Long.
-•	Interior Height: 11'6" (3.5m) at the apex.
-•	Shell Composition: 4" thick composite wall featuring smooth Fiberglass Reinforced Polymer (FRP) sections, 3" closed-cell spray foam, a Mylar reflective layer, a 1" thermal bridging air gap, and an exterior ceramic-coated zinc skin.
-•	Interior Finish: Gel-coated smooth surface to promote laminar airflow and hygiene.
-1.2 Ventilation & Airflow Management
-•	Exhaust Fans: 4 to 6 high-capacity 48" cone fans on the rear wall.
-•	Ceiling Baffles: Three fabric baffles spaced 33' apart, dropping 5' from the ceiling, cut to match the arch curvature. These concentrate airflow at the bird level.
-•	HVLS Fans: Three 8' High-Volume Low-Speed fans on 4' center posts, used to destratify hot air from the upper arch and "dead zones" behind baffles.
-•	Passive Intake: A 2' x 20' louvered opening at the front wall (7' elevation) for supplemental air and humidity control.
-1.3 Hydronic Cooling System
-•	Living Trellis: A 20' exterior arch trellis providing solar shading and initial evapotranspiration pre-cooling ($2\text{--}4^\circ\text{C}$ reduction).
-•	Radiator Banks: Six 4' x 4' hydronic radiators in a V-gap formation, drawing water from an underground "thermal battery" (buried poly tanks).
-•	Thermal Battery: Closed-loop recirculation system leveraging stable sub-surface ground temperatures.
-________________________________________
-2. Mathematical Engine
-The simulator utilizes the following formulas to predict environmental outcomes within the structure:
-2.1 Effective Cross-Sectional Area ($A_{eff}$)
-To calculate wind-chill, we must find the area through which air is "squeezed" by the baffles.
-•	Total Arch Area ($A_{total}$): Approximated for a parabolic arch:
-$$A_{total} = \frac{2}{3} \times \text{Width} \times \text{Apex Height} \approx 192 \text{ sq. ft.}$$
-•	Baffle Reduction Factor: Calculated based on the ratio of the open height ($H_{open}$) to total height ($H_{total}$):
-$$A_{eff} = A_{total} \times \left( \frac{H_{total} - \text{Baffle Drop}}{H_{total}} \right)^{1.5}$$
+1.1 Structural Geometry: 
+	Form Factor: Arch-shaped tunnel (Category 4 Hurricane Proof).
+	Dimensions: 24' Wide x 100' Long.
+	Exterior Height: 11'6” (3.5m) at the apex.
+	Shell Composition: 4" thick composite wall featuring smooth Fiberglass Reinforced Polymer (FRP), closed-cell spray foam, and an exterior ceramic-coated galvanized skin.
+
+1.2 Ventilation & Airflow Management: 
+	Exhaust Fans: 1 to 6 high-capacity 48" cone fans on the rear wall.
+	Ceiling Baffles: Adjustable fabric baffles that drop from the ceiling to concentrate airflow at the bird level.
+	Passive Intake: A 2' x 20' louvered opening at the front wall for supplemental air and pressure relief.
+	Pre-Cooling: Multi-stage exterior cooling via Camo Netting (-4°F) or a Living Trellis (-8°F).
+
+1.3 Health & Biosecurity Indicators: 
+	Viability Index: A real-time RED/GREEN/YELLOW status based on cumulative heat and ammonia stress.
+	Point Probe: Interactive mapping that allows the user to click any X-coordinate to see localized environmental data.
+
+2. Mathematical Engine: 
+The simulator utilizes the following formulas to predict environmental outcomes:
+2.1 Effective Airflow (\mathbit{Q}_{\mathbit{total}})
+Calculates the total air volume adjusted for intake resistance. If the Passive Vent is CLOSED, system efficiency drops by 7% due to radiator drag.
+(N_{fans}\times22,000)\times(0.93\mathrm{\ if\ Vent\ Closed,\ else\ }1.0)
+
 2.2 Bird-Level Velocity (Wind-Chill)
-Determines the convective cooling capacity experienced by the chickens:
-$$V_{fpm} = \frac{\text{Total Fan CFM}}{A_{eff}}$$
-•	Target: 600–800 fpm for maximum metabolic heat removal.
-2.3 Sensible Heat Gain ($\Delta T$)
-Calculates the temperature rise of the air as it travels from the intake to the exhaust fans due to bird metabolism:
-$$\Delta T (^\circ\text{F}) = \frac{N_{birds} \times Q_{sensible}}{1.08 \times \text{Total CFM}}$$
-•	$Q_{sensible}$: Average heat production per bird (approx. 35–45 BTU/hr for mature broilers).
-2.4 Air Exchange Rate
-The time required to replace 100% of the air volume in the barn:
-$$\text{Exchange Time (sec)} = \frac{\text{Total Barn Volume (ft}^3\text{)}}{\text{Total CFM}} \times 60$$
-2.5 Intake Static Pressure ($SP_{in}$)
-Estimates the resistance the fans must overcome at the radiators:
-$$SP_{in} = k \times \left( \frac{\text{Total CFM}}{\text{Intake Area}} \right)^2$$
-•	$k$: Resistance coefficient derived from the radiator manufacturing spec (target $< 15$ Pa).
-________________________________________
-3. Visualization Logic
-3.1 Longitudinal Side View
-•	Laminar Flow: Visualized as a blue gradient. As the velocity increases (at baffle points), the color shifts from light to dark blue.
-•	Dead Zones: Visualized in orange. These represent areas of low-velocity air ($< 50$ fpm) typically found immediately downwind of baffles or at the ridge apex.
-•	HVLS Interaction: Shows vector arrows pushing stagnant orange air into the blue high-velocity stream.
-3.2 Overhead Plan View
-•	Thermal Distribution: Displays a heat map from the cool intake (left) to the warmer exhaust (right).
-•	Stagnation Points: Highlights if the width of the arch creates corner pockets with insufficient air movement.
-________________________________________
-4. Operational Controls
-The simulator allows for real-time manipulation of:
-1.	Bird Population: Adjusts the total heat load and ammonia projection.
-2.	Fan Staging: Toggles between 1 and 6 fans to see the impact on power efficiency vs. wind-chill.
-3.	Baffle Depth: Demonstrates how "pinching" the air increases velocity without adding more fans.
-4.	Passive Bypass: Shows how opening the top louver reduces intake pressure but bypasses the hydronic cooling effect.
-________________________________________
+Determines the speed of air moving over the chickens based on the "pinched" area (A_{eff}) created by baffles.
+	Effective Area (\mathbit{A}_{\mathbit{eff}}):
+192\times\left(\frac{11.5-\mathrm{Baffle\ Drop}}{11.5}\right)^{1.3}
+
+
+	Velocity (\mathbit{V}_{\mathbit{fpm}}):
+\frac{Q_{total}}{A_{eff}}
+
+2.3 Sensible Heat Gain (\mathbf{\Delta}\mathbit{T})
+Calculates the temperature rise as air travels from intake to exhaust due to bird metabolism.
+\frac{N_{birds}\times45\mathrm{\ BTU/hr} }{1.08\times Q_{total}}
+
+	Localized Temp at Point X:
+T_{intake}+\left(\Delta T\times\frac{X}{100}\right)
+
+2.4 Ammonia Accumulation (\mathbit{N}\mathbit{H}_\mathbf{3})
+Predicts ppm levels based on bird density and air exchange rates.
+\left(\frac{N_{birds}\times0.0005\mathrm{\ CFM/bird} }{Q_{total}}\right)\times1,000,000
+
+2.5 Humidity Rise (\mathbit{RH})
+Estimates the increase in moisture as air moves through the population.
+\frac{N_{birds}\times0.01}{Q_{total}/1000}
+
+3. Operational Thresholds (Health Status - Viability)
+The simulator monitors the exhaust air to set the health status. The Chicken Viability Indicator uses the following logic to determine bird safety:
+	STATUS: OPTIMAL (Green): Temperature is below 88°F AND Ammonia is below 15 ppm.
+	STATUS: WARNING / STRESS (Yellow): Temperature is between 88°F–95°F OR Ammonia is between 15–25 ppm.
+	STATUS: CRITICAL / LETHAL (Red): Temperature exceeds 95°F OR Ammonia exceeds 25 ppm.
+
+4. Visualization Logic
+	Side View: Displays wind-chill velocity and baffle "pinch points."
+	Overhead View: A thermal heat map showing the "Cool-to-Warm" gradient and Ammonia spread.
+	Interaction: Clicking on either map updates the "Point Probe" metrics in the sidebar.
+
 5. Development & Deployment
-The ARISE Simulator is built as a lightweight web application using:
-•	HTML5/CSS3: UI Layout and styling.
-•	JavaScript (ES6): Physics engine and state management.
-•	Canvas API: Real-time 2D rendering of airflow vectors and heat maps.
+	Language: JavaScript (ES6)
+	Graphics: HTML5 Canvas API
+	Styles: CSS3 with Flexbox-locked viewport.
