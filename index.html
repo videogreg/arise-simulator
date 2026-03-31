@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ARISE Barn Simulator v4.0</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="sidebar">
+        <h1>ARISE Simulator</h1>
+        <div class="control-group">
+            <label>Birds (Meat Chickens): <span id="birdCountVal">2400</span></label>
+            <input type="range" id="birdCount" min="0" max="3000" value="2400">
+        </div>
+        <div class="control-group">
+            <label>Active Fans (48" Cone): <span id="fanCountVal">4</span></label>
+            <input type="range" id="fanCount" min="1" max="6" value="4">
+        </div>
+        <div class="control-group">
+            <label>Baffle Drop (ft): <span id="baffleVal">5</span></label>
+            <input type="range" id="baffleDrop" min="0" max="8" value="5">
+        </div>
+        <div class="control-group">
+            <label>Passive Opening (2'x20')</label>
+            <button id="louverToggle">CLOSED</button>
+        </div>
+        <div id="metrics">
+            <div class="metric-box">Wind-Chill: <b id="windChill">--</b> fpm</div>
+            <div class="metric-box">Temp Rise: <b id="tempRise">--</b> °F</div>
+            <div class="metric-box">Air Exchange: <b id="airEx">--</b> sec</div>
+        </div>
+    </div>
+    <div id="viewport">
+        <h3>Longitudinal Side View (Laminar Flow)</h3>
+        <canvas id="sideView"></canvas>
+        <h3>Overhead Plan View (Thermal Distribution)</h3>
+        <canvas id="topView"></canvas>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
