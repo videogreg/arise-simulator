@@ -12,25 +12,33 @@ let config = {
     preCoolEffect: 0
 };
 
+// INITIALIZE CANVAS SIZE ONCE
+function resize() {
+    sideCanvas.width = sideCanvas.clientWidth;
+    sideCanvas.height = sideCanvas.clientHeight;
+    topCanvas.width = topCanvas.clientWidth;
+    topCanvas.height = topCanvas.clientHeight;
+    update();
+}
+
 function update() {
     const intakeTemp = config.extTemp - config.preCoolEffect;
     const totalCFM = config.fans * 22000;
     const effectiveArea = 192 * Math.pow((11.5 - config.baffleDrop) / 11.5, 1.3);
     const windChill = totalCFM / effectiveArea;
 
-    // Exhaust Calculations
+    // Calculations
     const tempRiseTotal = (config.birds * 45) / (1.08 * totalCFM);
     const exitTemp = intakeTemp + tempRiseTotal;
     const ammoniaTotal = ((config.birds * 0.0005) / totalCFM) * 1000000;
+    const exitHum = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM / 1000));
 
-    // Update UI Summary
+    // UI Updates
     document.getElementById('exTemp').innerText = exitTemp.toFixed(1);
     document.getElementById('exAmmonia').innerText = ammoniaTotal.toFixed(1);
-    document.getElementById('exHum').innerText = (parseFloat(config.extHum) + (config.birds*0.01/(totalCFM/1000))).toFixed(1);
+    document.getElementById('exHum').innerText = Math.min(100, exitHum).toFixed(1);
 
-    // Update Viability Indicator based on Exhaust (Worst Case)
     updateViability(exitTemp, ammoniaTotal);
-
     drawSide(windChill);
     drawTop(intakeTemp, exitTemp, ammoniaTotal, windChill);
 }
@@ -38,7 +46,6 @@ function update() {
 function updateViability(temp, nh3) {
     const indicator = document.getElementById('statusIndicator');
     const text = document.getElementById('statusText');
-    
     if (temp > 95 || nh3 > 25) {
         indicator.style.background = "#ff4444";
         text.innerText = "CRITICAL / LETHAL";
@@ -74,26 +81,25 @@ function handleCanvasClick(e, canvas) {
 }
 
 function drawSide(vel) {
-    const w = sideCanvas.width = sideCanvas.offsetWidth;
-    const h = sideCanvas.height = sideCanvas.offsetHeight;
-    ctxSide.clearRect(0,0,w,h);
+    ctxSide.clearRect(0,0,sideCanvas.width,sideCanvas.height);
     const p = 60;
+    const iw = sideCanvas.width - (p*2);
+    const ih = sideCanvas.height - (p*2);
+
     ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.4)})`;
-    ctxSide.fillRect(p, p, w-(p*2), h-(p*2));
+    ctxSide.fillRect(p, p, iw, ih);
     
     ctxSide.fillStyle = "#ff4444";
     [0.3, 0.6, 0.9].forEach(pos => {
-        ctxSide.fillRect(p + (w-p*2)*pos, p, 4, (h-p*2)*(config.baffleDrop/11.5));
+        ctxSide.fillRect(p + iw*pos, p, 4, ih*(config.baffleDrop/11.5));
     });
 }
 
 function drawTop(inT, outT, nh3, vel) {
-    const w = topCanvas.width = topCanvas.offsetWidth;
-    const h = topCanvas.height = topCanvas.offsetHeight;
-    ctxTop.clearRect(0,0,w,h);
+    ctxTop.clearRect(0,0,topCanvas.width,topCanvas.height);
     const p = 60;
-    const iw = w-(p*2);
-    const ih = h-(p*2);
+    const iw = topCanvas.width - (p*2);
+    const ih = topCanvas.height - (p*2);
 
     let tGrad = ctxTop.createLinearGradient(p, 0, p+iw, 0);
     tGrad.addColorStop(0, inT > 90 ? '#ff3300' : '#00ffff');
@@ -110,13 +116,17 @@ function drawTop(inT, outT, nh3, vel) {
     }
 }
 
-// Listeners
+// Event Listeners
+window.addEventListener('resize', resize);
 sideCanvas.addEventListener('mousedown', (e) => handleCanvasClick(e, sideCanvas));
 topCanvas.addEventListener('mousedown', (e) => handleCanvasClick(e, topCanvas));
+
 document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.value; document.getElementById('birdCountVal').innerText = e.target.value; update(); };
 document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.value; document.getElementById('fanCountVal').innerText = e.target.value; update(); };
 document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.target.value; document.getElementById('baffleVal').innerText = e.target.value; update(); };
 document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); document.getElementById('extTempVal').innerText = e.target.value; update(); };
 document.getElementById('preCooling').onchange = (e) => { config.preCoolEffect = parseInt(e.target.value); update(); };
 
-window.onload = update;
+// Kickoff
+resize();
+setInterval(update, 50); // Keep particles moving
