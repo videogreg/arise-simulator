@@ -24,20 +24,17 @@ function resize() {
 function update() {
     const intakeTemp = config.extTemp - config.preCoolEffect;
     
-    // Physics Logic: Passive vent reduces radiator drag
     let totalCFM = config.fans * 22000;
     if (!config.passiveOpen) totalCFM *= 0.93;
 
     const effectiveArea = 192 * Math.pow((11.5 - config.baffleDrop) / 11.5, 1.3);
     const windChill = totalCFM / effectiveArea;
 
-    // Metabolic Accumulation
     const tempRiseTotal = (config.birds * 45) / (1.08 * totalCFM);
     const exitTemp = intakeTemp + tempRiseTotal;
     const ammoniaTotal = ((config.birds * 0.0005) / totalCFM) * 1000000;
     const exitHum = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM / 1000));
 
-    // Summary UI
     document.getElementById('exTemp').innerText = exitTemp.toFixed(1) + "°F";
     document.getElementById('exAmmonia').innerText = ammoniaTotal.toFixed(1) + " ppm";
     document.getElementById('exHum').innerText = Math.min(100, exitHum).toFixed(1) + "%";
@@ -65,9 +62,13 @@ function updateViability(temp, nh3) {
     }
 }
 
-function handleCanvasClick(e, canvas) {
+// Support for Mouse AND Touch
+function handleInteraction(e, canvas) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    // Support for touch events
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    
+    const x = clientX - rect.left;
     const padding = 60;
     const iw = canvas.width - (padding * 2);
     let pct = Math.max(0, Math.min(1, (x - padding) / iw));
@@ -117,10 +118,16 @@ function drawTop(inT, outT, nh3, vel) {
     }
 }
 
-// Global Listeners
+// Global Listeners with Mobile Touch Support
 window.addEventListener('resize', resize);
-sideCanvas.addEventListener('mousedown', (e) => handleCanvasClick(e, sideCanvas));
-topCanvas.addEventListener('mousedown', (e) => handleCanvasClick(e, topCanvas));
+
+[sideCanvas, topCanvas].forEach(canvas => {
+    canvas.addEventListener('mousedown', (e) => handleInteraction(e, canvas));
+    canvas.addEventListener('touchstart', (e) => {
+        // e.preventDefault(); // Prevents accidental scrolling while probing
+        handleInteraction(e, canvas);
+    }, {passive: true});
+});
 
 document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.value; document.getElementById('birdCountVal').innerText = e.target.value; update(); };
 document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.value; document.getElementById('fanCountVal').innerText = e.target.value; update(); };
