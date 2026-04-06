@@ -33,10 +33,7 @@ function resize() {
 function update() {
     const intakeTemp = config.extTemp - config.preCoolEffect;
     let totalCFM = config.fans * 22000;
-    
-    // Static Pressure Logic: If passive vent is closed, radiators (96sqft) 
-    // are the only air path, slightly restricting flow.
-    if (!config.passiveOpen) totalCFM *= 0.90; 
+    if (!config.passiveOpen) totalCFM *= 0.93;
 
     const effectiveArea = 192 * Math.pow((11.5 - config.baffleDrop) / 11.5, 1.3);
     const windChill = totalCFM / effectiveArea;
@@ -52,7 +49,7 @@ function update() {
 
     updateViability(exitTemp, ammoniaTotal);
     drawSide(windChill);
-    drawFacade(); // Updated from drawTop
+    drawTop(intakeTemp, exitTemp, windChill);
 }
 
 function updateViability(temp, nh3) {
@@ -67,6 +64,27 @@ function updateViability(temp, nh3) {
     }
 }
 
+function handleInteraction(e, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const x = clientX - rect.left;
+    const p = 60;
+    const barnStartX = p + (canvas.width - p*2) * (EXTENSION_LENGTH / TOTAL_LENGTH);
+    const iw = canvas.width - p - barnStartX;
+    let pct = Math.max(0, Math.min(1, (x - barnStartX) / iw));
+
+    let totalCFM = config.fans * 22000;
+    if (!config.passiveOpen) totalCFM *= 0.93;
+    const intakeTemp = config.extTemp - config.preCoolEffect;
+    const localT = intakeTemp + ((config.birds * 45) / (1.08 * totalCFM)) * pct;
+    const localA = (((config.birds * 0.0005) / totalCFM) * 1000000) * pct;
+    const localH = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM/1000)) * pct;
+
+    document.getElementById('pTemp').innerText = localT.toFixed(1) + "°F";
+    document.getElementById('pAmmonia').innerText = localA.toFixed(1) + " ppm";
+    document.getElementById('pHum').innerText = Math.min(100, localH).toFixed(1) + "%";
+}
+
 function drawSide(vel) {
     ctxSide.clearRect(0,0,sideCanvas.width,sideCanvas.height);
     const p = 60;
@@ -75,29 +93,16 @@ function drawSide(vel) {
     const barnW = totalW - extW;
     const ih = sideCanvas.height - (p*2);
     
-    // 1. Arch Extension (Hydronic Buffer)
+    // Extension
     ctxSide.strokeStyle = "#444"; ctxSide.setLineDash([5, 5]);
     ctxSide.strokeRect(p, p, extW, ih); ctxSide.setLineDash([]);
     ctxSide.fillStyle = "rgba(0, 255, 100, 0.05)"; ctxSide.fillRect(p, p, extW, ih);
 
-    // 2. Barn Interior
+    // Barn
     ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.3)})`;
     ctxSide.fillRect(p + extW, p, barnW, ih);
 
-    // 3. Passive Vent (Above Radiators)
-    if (config.passiveOpen) {
-        ctxSide.save(); ctxSide.shadowBlur = 15; ctxSide.shadowColor = "#00d4ff";
-        ctxSide.fillStyle = "rgba(0, 212, 255, 0.8)";
-        // Located top of intake wall
-        ctxSide.fillRect(p + extW - 5, p, 10, ih * 0.15); 
-        ctxSide.restore();
-    }
-
-    // 4. Radiator Location (Side profile)
-    ctxSide.fillStyle = "#333";
-    ctxSide.fillRect(p + extW - 3, p + (ih * 0.3), 6, ih * 0.6);
-
-    // 5. HVLS Fans
+    // HVLS
     const postH = ih * (4 / 11.5);
     HVLS_POS.forEach(pos => {
         const hX = p + extW + barnW * pos;
@@ -105,18 +110,26 @@ function drawSide(vel) {
         ctxSide.fillStyle = config.hvlsOn ? "#00d4ff" : "#444"; ctxSide.fillRect(hX - 15, p + postH, 30, 5); 
         if (config.hvlsOn) {
             let g = ctxSide.createLinearGradient(hX, p + postH, hX, p + ih);
-            g.addColorStop(0, "rgba(0, 212, 255, 0.1)"); g.addColorStop(1, "rgba(0, 212, 255, 0)");
+            g.addColorStop(0, "rgba(0, 212, 255, 0.2)"); g.addColorStop(1, "rgba(0, 212, 255, 0)");
             ctxSide.fillStyle = g; ctxSide.fillRect(hX - 25, p + postH, 50, ih - postH);
         }
     });
 
-    // 6. Airflow Paths
+    // Passive Vent Glow (Intake Wall)
+    if (config.passiveOpen) {
+        const vY = p + ih - (ih * (7 / 11.5)); 
+        ctxSide.save(); ctxSide.shadowBlur = 20; ctxSide.shadowColor = "#00d4ff";
+        ctxSide.fillStyle = "rgba(0, 212, 255, 0.8)";
+        ctxSide.fillRect(p + extW - 5, vY - (ih*(2/11.5)), 10, ih*(2/11.5));
+        ctxSide.restore();
+    }
+
     if (config.showPaths) {
-        ctxSide.strokeStyle = "rgba(255, 255, 255, 0.2)";
+        ctxSide.strokeStyle = "rgba(255, 255, 255, 0.3)"; ctxSide.lineWidth = 1;
         const time = Date.now() * 0.002;
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 10; i++) {
             ctxSide.beginPath();
-            let sY = p + (ih * (i / 7)); ctxSide.moveTo(p, sY);
+            let sY = p + (ih * (i / 9)); ctxSide.moveTo(p, sY);
             for (let x = 0; x <= totalW; x += 15) {
                 let cX = p + x, cY = sY, relX = (x - extW) / barnW;
                 if (config.hvlsOn && relX > 0) {
@@ -131,7 +144,7 @@ function drawSide(vel) {
                         if (dB < 40) cY += (p + ih - cY) * ((config.baffleDrop/11.5) * (1 - dB/40)) * 0.8;
                     });
                 }
-                ctxSide.setLineDash([10, 20]); ctxSide.lineDashOffset = -(time * vel * 0.05) % 30;
+                ctxSide.setLineDash([15, 25]); ctxSide.lineDashOffset = -(time * vel * 0.05) % 40;
                 ctxSide.lineTo(cX, Math.min(p + ih, cY));
             }
             ctxSide.stroke();
@@ -139,69 +152,53 @@ function drawSide(vel) {
         ctxSide.setLineDash([]);
     }
 
-    // Baffles
     ctxSide.fillStyle = "#ff4444";
     BAFFLES.forEach(pos => ctxSide.fillRect(p + extW + barnW * pos, p, 4, ih*(config.baffleDrop/11.5)));
 }
 
-function drawFacade() {
+function drawTop(inT, outT, vel) {
     ctxTop.clearRect(0,0,topCanvas.width,topCanvas.height);
-    const p = 40;
-    const w = topCanvas.width - (p*2);
-    const h = topCanvas.height - (p*2);
-    const scale = w / 25; // 25ft wide barn
+    const p = 60; const tW = topCanvas.width - (p*2); const extW = tW * (EXTENSION_LENGTH / TOTAL_LENGTH);
+    const barnW = tW - extW; const ih = topCanvas.height - (p*2);
 
-    // 1. Draw Barn Arch Outline
-    ctxTop.strokeStyle = "#555";
-    ctxTop.beginPath();
-    ctxTop.moveTo(p, p + h);
-    ctxTop.lineTo(p + w, p + h);
-    ctxTop.lineTo(p + w, p + h * 0.4);
-    ctxTop.quadraticCurveTo(p + w/2, p - 20, p, p + h * 0.4);
-    ctxTop.closePath();
-    ctxTop.stroke();
-
-    // 2. Central Double Doors (approx 6' wide)
-    ctxTop.fillStyle = "#222";
-    const doorW = 6 * scale;
-    const doorH = 7 * scale;
-    ctxTop.fillRect(p + (w - doorW)/2, p + h - doorH, doorW, doorH);
-
-    // 3. Radiator Array (96 sq ft total)
-    ctxTop.fillStyle = config.preCoolEffect > 0 ? "#00d4ff" : "#444";
+    let g = ctxTop.createLinearGradient(p + extW, 0, p + tW, 0);
+    g.addColorStop(0, inT > 90 ? '#ff3300' : '#00ffff');
+    g.addColorStop(1, outT > 90 ? '#ff3300' : (outT > 85 ? '#ffcc00' : '#00ffaa'));
+    ctxTop.globalAlpha = 0.4; ctxTop.fillStyle = g; ctxTop.fillRect(p + extW, p, barnW, ih); ctxTop.globalAlpha = 1.0;
     
-    // 6x4 Radiators
-    const r64W = 4 * scale;
-    const r64H = 6 * scale;
-    ctxTop.fillRect(p + (w - doorW)/2 - r64W - 5, p + h - r64H, r64W, r64H); // Left
-    ctxTop.fillRect(p + (w + doorW)/2 + 5, p + h - r64H, r64W, r64H); // Right
-
-    // 4x4 Radiators
-    const r44W = 4 * scale;
-    const r44H = 4 * scale;
-    ctxTop.fillRect(p + (w - doorW)/2 - r64W - r44W - 10, p + h - r44H, r44W, r44H); // Far Left
-    ctxTop.fillRect(p + (w + doorW)/2 + r64W + 10, p + h - r44H, r44W, r44H); // Far Right
-
-    // 4. Passive Vent (Above doors/radiators)
-    ctxTop.strokeStyle = config.passiveOpen ? "#00d4ff" : "#333";
-    ctxTop.setLineDash([5, 5]);
-    ctxTop.strokeRect(p + (w - 20 * scale)/2, p + h - doorH - 25, 20 * scale, 2 * scale);
-    ctxTop.setLineDash([]);
+    // Passive Vent Glow (Intake Wall - 20' wide)
     if (config.passiveOpen) {
-        ctxTop.fillStyle = "rgba(0, 212, 255, 0.3)";
-        ctxTop.fillRect(p + (w - 20 * scale)/2, p + h - doorH - 25, 20 * scale, 2 * scale);
+        ctxTop.save(); ctxTop.shadowBlur = 15; ctxTop.shadowColor = "#00d4ff";
+        ctxTop.fillStyle = "#00d4ff";
+        const vW = ih * (20 / 24); // Vent is 20' of 24' width
+        ctxTop.fillRect(p + extW - 3, p + (ih - vW) / 2, 6, vW);
+        ctxTop.restore();
     }
 
-    // Legend
-    ctxTop.fillStyle = "#888"; ctxTop.font = "10px Inter";
-    ctxTop.fillText("RADIATOR ARRAY (96 SQ FT)", p, p + h + 20);
+    // Airspeed Particles
+    ctxTop.fillStyle = "rgba(255, 255, 255, 0.6)";
+    for(let i=0; i<40; i++) {
+        let x = (p + extW + (i*50 + Date.now()*0.006*vel)) % barnW + p + extW;
+        ctxTop.beginPath(); ctxTop.arc(x, p + (i%8 * (ih/7)), 1.5, 0, Math.PI*2); ctxTop.fill();
+    }
+
+    HVLS_POS.forEach(pos => {
+        ctxTop.strokeStyle = config.hvlsOn ? "rgba(0, 212, 255, 0.8)" : "#333";
+        ctxTop.beginPath(); ctxTop.arc(p + extW + barnW*pos, p + ih/2, ih*0.2, 0, Math.PI*2); ctxTop.stroke();
+    });
 }
 
 window.addEventListener('resize', resize);
+[sideCanvas, topCanvas].forEach(c => {
+    c.addEventListener('mousedown', (e) => handleInteraction(e, c));
+    c.addEventListener('touchstart', (e) => handleInteraction(e, c), {passive: true});
+});
+
 document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.value; document.getElementById('birdCountVal').innerText = e.target.value; update(); };
 document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.value; document.getElementById('fanCountVal').innerText = e.target.value; update(); };
 document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.target.value; document.getElementById('baffleVal').innerText = e.target.value; update(); };
 document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); document.getElementById('extTempVal').innerText = e.target.value; update(); };
+document.getElementById('extHum').oninput = (e) => { config.extHum = e.target.value; document.getElementById('extHumVal').innerText = e.target.value; update(); };
 document.getElementById('hvlsSpeed').oninput = (e) => { config.hvlsSpeed = e.target.value; document.getElementById('hvlsSpeedVal').innerText = e.target.value; update(); };
 document.getElementById('preCooling').onchange = (e) => { config.preCoolEffect = parseInt(e.target.value); update(); };
 document.getElementById('hvlsToggle').onclick = (e) => { config.hvlsOn = !config.hvlsOn; e.target.innerText = config.hvlsOn ? "HVLS ON" : "HVLS OFF"; e.target.classList.toggle('active'); update(); };
