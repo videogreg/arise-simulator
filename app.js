@@ -10,7 +10,8 @@ let config = {
     extTemp: 90,
     extHum: 85,
     preCoolEffect: 0,
-    passiveOpen: false
+    passiveOpen: false,
+    showPaths: false
 };
 
 function resize() {
@@ -62,10 +63,8 @@ function updateViability(temp, nh3) {
     }
 }
 
-// Support for Mouse AND Touch
 function handleInteraction(e, canvas) {
     const rect = canvas.getBoundingClientRect();
-    // Support for touch events
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     
     const x = clientX - rect.left;
@@ -91,8 +90,57 @@ function drawSide(vel) {
     const p = 60;
     const iw = sideCanvas.width - (p*2);
     const ih = sideCanvas.height - (p*2);
+    
     ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.4)})`;
     ctxSide.fillRect(p, p, iw, ih);
+
+    // Passive Vent Glow (7ft Elevation)
+    if (config.passiveOpen) {
+        const ventY = p + ih - (ih * (7 / 11.5)); 
+        const ventHeight = ih * (2 / 11.5); 
+        ctxSide.save();
+        ctxSide.shadowBlur = 20;
+        ctxSide.shadowColor = "#00d4ff";
+        ctxSide.fillStyle = "rgba(0, 212, 255, 0.6)";
+        ctxSide.fillRect(p - 5, ventY - ventHeight, 10, ventHeight);
+        ctxSide.restore();
+    }
+
+    if (config.showPaths) {
+        ctxSide.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctxSide.lineWidth = 1;
+        const numLines = 8;
+        const time = Date.now() * 0.002;
+
+        for (let i = 0; i < numLines; i++) {
+            ctxSide.beginPath();
+            let startY = p + (ih * (i / (numLines - 1)));
+            ctxSide.moveTo(p, startY);
+
+            for (let x = 0; x <= iw; x += 20) {
+                let currentX = p + x;
+                let currentY = startY;
+
+                // Pinch effect logic based on baffle placement
+                [0.3, 0.6, 0.9].forEach(pos => {
+                    const bX = p + iw * pos;
+                    const dist = Math.abs(currentX - bX);
+                    if (dist < 40) {
+                        const pinchFactor = (config.baffleDrop / 11.5) * (1 - dist / 40);
+                        currentY += (p + ih - currentY) * pinchFactor * 0.8;
+                    }
+                });
+
+                const dashOffset = (time * vel * 0.05) % 40;
+                ctxSide.setLineDash([20, 20]);
+                ctxSide.lineDashOffset = -dashOffset;
+                ctxSide.lineTo(currentX, currentY);
+            }
+            ctxSide.stroke();
+        }
+        ctxSide.setLineDash([]);
+    }
+
     ctxSide.fillStyle = "#ff4444";
     [0.3, 0.6, 0.9].forEach(pos => {
         ctxSide.fillRect(p + iw*pos, p, 4, ih*(config.baffleDrop/11.5));
@@ -104,6 +152,7 @@ function drawTop(inT, outT, nh3, vel) {
     const p = 60;
     const iw = topCanvas.width - (p*2);
     const ih = topCanvas.height - (p*2);
+    
     let tGrad = ctxTop.createLinearGradient(p, 0, p+iw, 0);
     tGrad.addColorStop(0, inT > 90 ? '#ff3300' : '#00ffff');
     tGrad.addColorStop(1, outT > 90 ? '#ff3300' : (outT > 85 ? '#ffcc00' : '#00ffaa'));
@@ -111,6 +160,17 @@ function drawTop(inT, outT, nh3, vel) {
     ctxTop.fillStyle = tGrad;
     ctxTop.fillRect(p, p, iw, ih);
     ctxTop.globalAlpha = 1.0;
+
+    if (config.passiveOpen) {
+        ctxTop.save();
+        ctxTop.shadowBlur = 15;
+        ctxTop.shadowColor = "#00d4ff";
+        ctxTop.fillStyle = "#00d4ff";
+        const ventW = ih * (20 / 24);
+        ctxTop.fillRect(p - 2, p + (ih - ventW) / 2, 5, ventW);
+        ctxTop.restore();
+    }
+
     ctxTop.fillStyle = "white";
     for(let i=0; i<30; i++) {
         let x = (p + (i*40 + Date.now()*0.005*vel)) % iw + p;
@@ -118,13 +178,11 @@ function drawTop(inT, outT, nh3, vel) {
     }
 }
 
-// Global Listeners with Mobile Touch Support
 window.addEventListener('resize', resize);
 
 [sideCanvas, topCanvas].forEach(canvas => {
     canvas.addEventListener('mousedown', (e) => handleInteraction(e, canvas));
     canvas.addEventListener('touchstart', (e) => {
-        // e.preventDefault(); // Prevents accidental scrolling while probing
         handleInteraction(e, canvas);
     }, {passive: true});
 });
@@ -135,9 +193,17 @@ document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.t
 document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); document.getElementById('extTempVal').innerText = e.target.value; update(); };
 document.getElementById('extHum').oninput = (e) => { config.extHum = e.target.value; document.getElementById('extHumVal').innerText = e.target.value; update(); };
 document.getElementById('preCooling').onchange = (e) => { config.preCoolEffect = parseInt(e.target.value); update(); };
+
 document.getElementById('louverToggle').onclick = (e) => {
     config.passiveOpen = !config.passiveOpen;
     e.target.innerText = config.passiveOpen ? "OPEN" : "CLOSED";
+    e.target.classList.toggle('active');
+    update();
+};
+
+document.getElementById('pathToggle').onclick = (e) => {
+    config.showPaths = !config.showPaths;
+    e.target.innerText = config.showPaths ? "HIDE PATHS" : "SHOW PATHS";
     e.target.classList.toggle('active');
     update();
 };

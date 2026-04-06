@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ARISE v4.51 | Responsive Simulator</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=4.51">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -37,6 +37,11 @@
         </div>
 
         <div class="control-group">
+            <label>Airflow Visualization</label>
+            <button id="pathToggle" class="toggle-btn">SHOW PATHS</button>
+        </div>
+
+        <div class="control-group">
             <label>Ambient Temp: <span id="extTempVal">90</span>°F</label>
             <input type="range" id="extTemp" min="75" max="105" value="90">
         </div>
@@ -50,8 +55,8 @@
             <label>Pre-Cooling</label>
             <select id="preCooling">
                 <option value="0">None (Full Sun)</option>
-                <option value="4">Camo Net (-4°F)</option>
-                <option value="8">Trellis (-8°F)</option>
+                <option value="4">Camo Net (20' arch)</option>
+                <option value="8">Trellis (20' arch)</option>
             </select>
         </div>
 
@@ -83,6 +88,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4.51"></script>
 </body>
 </html>
