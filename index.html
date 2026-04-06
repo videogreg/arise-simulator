@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ARISE v4.51 | Responsive Simulator</title>
-    <link rel="stylesheet" href="style.css?v=4.51">
+    <title>ARISE v4.53 | Full Feature Integration</title>
+    <link rel="stylesheet" href="style.css?v=4.53">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="sidebar">
-        <h1>ARISE v4.51 <br><small>Biosecurity & Climate Sim</small></h1>
+        <h1>ARISE v4.53 <br><small>Biosecurity & Climate Sim</small></h1>
         
         <div id="viability-index">
             STATUS: <span id="statusText">OPTIMAL</span>
@@ -29,6 +29,13 @@
         <div class="control-group">
             <label>Baffle Drop (ft): <span id="baffleVal">5</span></label>
             <input type="range" id="baffleDrop" min="0" max="8" value="5">
+        </div>
+
+        <div class="control-group">
+            <label>HVLS 8' Ceiling Fans</label>
+            <button id="hvlsToggle" class="toggle-btn">HVLS OFF</button>
+            <label style="margin-top:8px;">HVLS Speed: <span id="hvlsSpeedVal">50</span>%</label>
+            <input type="range" id="hvlsSpeed" min="10" max="100" value="50">
         </div>
 
         <div class="control-group">
@@ -88,6 +95,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=4.51"></script>
+    <script src="app.js?v=4.53"></script>
 </body>
 </html>

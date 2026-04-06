@@ -11,7 +11,9 @@ let config = {
     extHum: 85,
     preCoolEffect: 0,
     passiveOpen: false,
-    showPaths: false
+    showPaths: false,
+    hvlsOn: false,
+    hvlsSpeed: 50
 };
 
 function resize() {
@@ -24,7 +26,6 @@ function resize() {
 
 function update() {
     const intakeTemp = config.extTemp - config.preCoolEffect;
-    
     let totalCFM = config.fans * 22000;
     if (!config.passiveOpen) totalCFM *= 0.93;
 
@@ -49,24 +50,17 @@ function updateViability(temp, nh3) {
     const indicator = document.getElementById('statusIndicator');
     const text = document.getElementById('statusText');
     if (temp > 95 || nh3 > 25) {
-        indicator.style.background = "#ff4444";
-        text.innerText = "CRITICAL / LETHAL";
-        text.style.color = "#ff4444";
+        indicator.style.background = "#ff4444"; text.innerText = "CRITICAL / LETHAL"; text.style.color = "#ff4444";
     } else if (temp > 88 || nh3 > 15) {
-        indicator.style.background = "#ffcc00";
-        text.innerText = "WARNING / STRESS";
-        text.style.color = "#ffcc00";
+        indicator.style.background = "#ffcc00"; text.innerText = "WARNING / STRESS"; text.style.color = "#ffcc00";
     } else {
-        indicator.style.background = "#44ffaa";
-        text.innerText = "OPTIMAL";
-        text.style.color = "#44ffaa";
+        indicator.style.background = "#44ffaa"; text.innerText = "OPTIMAL"; text.style.color = "#44ffaa";
     }
 }
 
 function handleInteraction(e, canvas) {
     const rect = canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    
     const x = clientX - rect.left;
     const padding = 60;
     const iw = canvas.width - (padding * 2);
@@ -94,22 +88,24 @@ function drawSide(vel) {
     ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.4)})`;
     ctxSide.fillRect(p, p, iw, ih);
 
-    // Passive Vent Glow (7ft Elevation)
-    if (config.passiveOpen) {
-        const ventY = p + ih - (ih * (7 / 11.5)); 
-        const ventHeight = ih * (2 / 11.5); 
-        ctxSide.save();
-        ctxSide.shadowBlur = 20;
-        ctxSide.shadowColor = "#00d4ff";
-        ctxSide.fillStyle = "rgba(0, 212, 255, 0.6)";
-        ctxSide.fillRect(p - 5, ventY - ventHeight, 10, ventHeight);
-        ctxSide.restore();
-    }
+    const hvlsPositions = [0.15, 0.45, 0.75];
+    hvlsPositions.forEach(pos => {
+        const hX = p + iw * pos;
+        ctxSide.fillStyle = config.hvlsOn ? "#00d4ff" : "#444";
+        ctxSide.fillRect(hX - 15, p, 30, 5); 
+        if (config.hvlsOn) {
+            let grad = ctxSide.createLinearGradient(hX, p, hX, p + ih);
+            grad.addColorStop(0, "rgba(0, 212, 255, 0.2)");
+            grad.addColorStop(1, "rgba(0, 212, 255, 0)");
+            ctxSide.fillStyle = grad;
+            ctxSide.fillRect(hX - 25, p, 50, ih);
+        }
+    });
 
     if (config.showPaths) {
         ctxSide.strokeStyle = "rgba(255, 255, 255, 0.3)";
         ctxSide.lineWidth = 1;
-        const numLines = 8;
+        const numLines = 10;
         const time = Date.now() * 0.002;
 
         for (let i = 0; i < numLines; i++) {
@@ -117,28 +113,48 @@ function drawSide(vel) {
             let startY = p + (ih * (i / (numLines - 1)));
             ctxSide.moveTo(p, startY);
 
-            for (let x = 0; x <= iw; x += 20) {
+            for (let x = 0; x <= iw; x += 15) {
                 let currentX = p + x;
                 let currentY = startY;
 
-                // Pinch effect logic based on baffle placement
+                if (config.hvlsOn) {
+                    hvlsPositions.forEach(pos => {
+                        const hX = p + iw * pos;
+                        const distH = Math.abs(currentX - hX);
+                        if (distH < 60) {
+                            const force = (1 - distH / 60) * (config.hvlsSpeed / 100);
+                            currentY += (p + ih - currentY) * force * 0.3;
+                        }
+                    });
+                }
+
                 [0.3, 0.6, 0.9].forEach(pos => {
                     const bX = p + iw * pos;
-                    const dist = Math.abs(currentX - bX);
-                    if (dist < 40) {
-                        const pinchFactor = (config.baffleDrop / 11.5) * (1 - dist / 40);
-                        currentY += (p + ih - currentY) * pinchFactor * 0.8;
+                    const distB = Math.abs(currentX - bX);
+                    if (distB < 40) {
+                        const pinch = (config.baffleDrop / 11.5) * (1 - distB / 40);
+                        currentY += (p + ih - currentY) * pinch * 0.8;
                     }
                 });
 
                 const dashOffset = (time * vel * 0.05) % 40;
-                ctxSide.setLineDash([20, 20]);
+                ctxSide.setLineDash([15, 25]);
                 ctxSide.lineDashOffset = -dashOffset;
-                ctxSide.lineTo(currentX, currentY);
+                ctxSide.lineTo(currentX, Math.min(p + ih, currentY));
             }
             ctxSide.stroke();
         }
         ctxSide.setLineDash([]);
+    }
+
+    if (config.passiveOpen) {
+        const ventY = p + ih - (ih * (7 / 11.5)); 
+        ctxSide.save();
+        ctxSide.shadowBlur = 20;
+        ctxSide.shadowColor = "#00d4ff";
+        ctxSide.fillStyle = "rgba(0, 212, 255, 0.6)";
+        ctxSide.fillRect(p - 5, ventY - (ih*(2/11.5)), 10, ih*(2/11.5));
+        ctxSide.restore();
     }
 
     ctxSide.fillStyle = "#ff4444";
@@ -149,42 +165,25 @@ function drawSide(vel) {
 
 function drawTop(inT, outT, nh3, vel) {
     ctxTop.clearRect(0,0,topCanvas.width,topCanvas.height);
-    const p = 60;
-    const iw = topCanvas.width - (p*2);
-    const ih = topCanvas.height - (p*2);
-    
+    const p = 60; const iw = topCanvas.width - (p*2); const ih = topCanvas.height - (p*2);
     let tGrad = ctxTop.createLinearGradient(p, 0, p+iw, 0);
     tGrad.addColorStop(0, inT > 90 ? '#ff3300' : '#00ffff');
     tGrad.addColorStop(1, outT > 90 ? '#ff3300' : (outT > 85 ? '#ffcc00' : '#00ffaa'));
-    ctxTop.globalAlpha = 0.5;
-    ctxTop.fillStyle = tGrad;
-    ctxTop.fillRect(p, p, iw, ih);
-    ctxTop.globalAlpha = 1.0;
-
-    if (config.passiveOpen) {
-        ctxTop.save();
-        ctxTop.shadowBlur = 15;
-        ctxTop.shadowColor = "#00d4ff";
-        ctxTop.fillStyle = "#00d4ff";
-        const ventW = ih * (20 / 24);
-        ctxTop.fillRect(p - 2, p + (ih - ventW) / 2, 5, ventW);
-        ctxTop.restore();
-    }
-
-    ctxTop.fillStyle = "white";
-    for(let i=0; i<30; i++) {
-        let x = (p + (i*40 + Date.now()*0.005*vel)) % iw + p;
-        ctxTop.beginPath(); ctxTop.arc(x, p+ih/2 + (i%5*20-40), 1.5, 0, Math.PI*2); ctxTop.fill();
-    }
+    ctxTop.globalAlpha = 0.5; ctxTop.fillStyle = tGrad; ctxTop.fillRect(p, p, iw, ih); ctxTop.globalAlpha = 1.0;
+    
+    const hvlsPositions = [0.15, 0.45, 0.75];
+    hvlsPositions.forEach(pos => {
+        ctxTop.strokeStyle = config.hvlsOn ? "rgba(0, 212, 255, 0.8)" : "#333";
+        ctxTop.beginPath();
+        ctxTop.arc(p + iw*pos, p + ih/2, ih*0.15, 0, Math.PI*2);
+        ctxTop.stroke();
+    });
 }
 
 window.addEventListener('resize', resize);
-
 [sideCanvas, topCanvas].forEach(canvas => {
     canvas.addEventListener('mousedown', (e) => handleInteraction(e, canvas));
-    canvas.addEventListener('touchstart', (e) => {
-        handleInteraction(e, canvas);
-    }, {passive: true});
+    canvas.addEventListener('touchstart', (e) => handleInteraction(e, canvas), {passive: true});
 });
 
 document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.value; document.getElementById('birdCountVal').innerText = e.target.value; update(); };
@@ -192,7 +191,15 @@ document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.va
 document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.target.value; document.getElementById('baffleVal').innerText = e.target.value; update(); };
 document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); document.getElementById('extTempVal').innerText = e.target.value; update(); };
 document.getElementById('extHum').oninput = (e) => { config.extHum = e.target.value; document.getElementById('extHumVal').innerText = e.target.value; update(); };
+document.getElementById('hvlsSpeed').oninput = (e) => { config.hvlsSpeed = e.target.value; document.getElementById('hvlsSpeedVal').innerText = e.target.value; update(); };
 document.getElementById('preCooling').onchange = (e) => { config.preCoolEffect = parseInt(e.target.value); update(); };
+
+document.getElementById('hvlsToggle').onclick = (e) => {
+    config.hvlsOn = !config.hvlsOn;
+    e.target.innerText = config.hvlsOn ? "HVLS ON" : "HVLS OFF";
+    e.target.classList.toggle('active');
+    update();
+};
 
 document.getElementById('louverToggle').onclick = (e) => {
     config.passiveOpen = !config.passiveOpen;

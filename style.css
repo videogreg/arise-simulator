@@ -76,20 +76,7 @@ h4 { font-size: 0.65rem; color: #00d4ff; text-transform: uppercase; margin: 0 0 
 b { float: right; color: #fff; font-family: 'JetBrains Mono', monospace; }
 
 @media (max-width: 900px) {
-    body {
-        flex-direction: column;
-        overflow-y: auto;
-        height: auto;
-    }
-    #sidebar {
-        width: 100%;
-        min-width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid #333;
-    }
-    #viewport {
-        height: 800px; 
-        flex: none;
-    }
+    body { flex-direction: column; overflow-y: auto; height: auto; }
+    #sidebar { width: 100%; min-width: 100%; height: auto; border-right: none; border-bottom: 1px solid #333; }
+    #viewport { height: 800px; flex: none; }
 }
