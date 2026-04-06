@@ -16,6 +16,16 @@ let config = {
     hvlsSpeed: 50
 };
 
+// Barn Geometry Constants
+const BARN_LENGTH = 100;
+const EXTENSION_LENGTH = 20;
+const TOTAL_LENGTH = BARN_LENGTH + EXTENSION_LENGTH;
+// Baffle positions from BACK (exit wall): 33' and 66'. 
+// In 0-100' coordinates from front: 100-33=67 and 100-66=34.
+const BAFFLES = [0.34, 0.67]; 
+// HVLS centered between wall-baffle, baffle-baffle, baffle-wall
+const HVLS_POS = [0.17, 0.505, 0.835]; 
+
 function resize() {
     sideCanvas.width = sideCanvas.clientWidth;
     sideCanvas.height = sideCanvas.clientHeight;
@@ -63,12 +73,13 @@ function handleInteraction(e, canvas) {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const x = clientX - rect.left;
     const padding = 60;
-    const iw = canvas.width - (padding * 2);
-    let pct = Math.max(0, Math.min(1, (x - padding) / iw));
+    const barnStartX = padding + (canvas.width - padding*2) * (EXTENSION_LENGTH / TOTAL_LENGTH);
+    const iw = canvas.width - padding - barnStartX;
+    
+    let pct = Math.max(0, Math.min(1, (x - barnStartX) / iw));
 
     let totalCFM = config.fans * 22000;
     if (!config.passiveOpen) totalCFM *= 0.93;
-
     const intakeTemp = config.extTemp - config.preCoolEffect;
     const localT = intakeTemp + ((config.birds * 45) / (1.08 * totalCFM)) * pct;
     const localA = (((config.birds * 0.0005) / totalCFM) * 1000000) * pct;
@@ -82,26 +93,43 @@ function handleInteraction(e, canvas) {
 function drawSide(vel) {
     ctxSide.clearRect(0,0,sideCanvas.width,sideCanvas.height);
     const p = 60;
-    const iw = sideCanvas.width - (p*2);
+    const totalW = sideCanvas.width - (p*2);
+    const extW = totalW * (EXTENSION_LENGTH / TOTAL_LENGTH);
+    const barnW = totalW - extW;
     const ih = sideCanvas.height - (p*2);
     
-    ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.4)})`;
-    ctxSide.fillRect(p, p, iw, ih);
+    // 1. Draw Extension (Garden Arch)
+    ctxSide.strokeStyle = "#444";
+    ctxSide.setLineDash([5, 5]);
+    ctxSide.strokeRect(p, p, extW, ih);
+    ctxSide.setLineDash([]);
+    ctxSide.fillStyle = "rgba(0, 255, 100, 0.1)";
+    ctxSide.fillRect(p, p, extW, ih);
 
-    const hvlsPositions = [0.15, 0.45, 0.75];
-    hvlsPositions.forEach(pos => {
-        const hX = p + iw * pos;
+    // 2. Draw Barn Main Body
+    ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.4)})`;
+    ctxSide.fillRect(p + extW, p, barnW, ih);
+
+    // 3. HVLS Fans (Located on 4' posts from 11' ceiling)
+    const postHeight = ih * (4 / 11.5);
+    HVLS_POS.forEach(pos => {
+        const hX = p + extW + barnW * pos;
+        // Post
+        ctxSide.strokeStyle = "#666";
+        ctxSide.beginPath(); ctxSide.moveTo(hX, p); ctxSide.lineTo(hX, p + postHeight); ctxSide.stroke();
+        // Fan Unit
         ctxSide.fillStyle = config.hvlsOn ? "#00d4ff" : "#444";
-        ctxSide.fillRect(hX - 15, p, 30, 5); 
+        ctxSide.fillRect(hX - 15, p + postHeight, 30, 5); 
         if (config.hvlsOn) {
-            let grad = ctxSide.createLinearGradient(hX, p, hX, p + ih);
+            let grad = ctxSide.createLinearGradient(hX, p + postHeight, hX, p + ih);
             grad.addColorStop(0, "rgba(0, 212, 255, 0.2)");
             grad.addColorStop(1, "rgba(0, 212, 255, 0)");
             ctxSide.fillStyle = grad;
-            ctxSide.fillRect(hX - 25, p, 50, ih);
+            ctxSide.fillRect(hX - 25, p + postHeight, 50, ih - postHeight);
         }
     });
 
+    // 4. Airflow Paths
     if (config.showPaths) {
         ctxSide.strokeStyle = "rgba(255, 255, 255, 0.3)";
         ctxSide.lineWidth = 1;
@@ -113,14 +141,14 @@ function drawSide(vel) {
             let startY = p + (ih * (i / (numLines - 1)));
             ctxSide.moveTo(p, startY);
 
-            for (let x = 0; x <= iw; x += 15) {
+            for (let x = 0; x <= totalW; x += 15) {
                 let currentX = p + x;
                 let currentY = startY;
+                let relativeX = (x - extW) / barnW;
 
-                if (config.hvlsOn) {
-                    hvlsPositions.forEach(pos => {
-                        const hX = p + iw * pos;
-                        const distH = Math.abs(currentX - hX);
+                if (config.hvlsOn && relativeX > 0) {
+                    HVLS_POS.forEach(pos => {
+                        const distH = Math.abs(relativeX - pos) * barnW;
                         if (distH < 60) {
                             const force = (1 - distH / 60) * (config.hvlsSpeed / 100);
                             currentY += (p + ih - currentY) * force * 0.3;
@@ -128,14 +156,15 @@ function drawSide(vel) {
                     });
                 }
 
-                [0.3, 0.6, 0.9].forEach(pos => {
-                    const bX = p + iw * pos;
-                    const distB = Math.abs(currentX - bX);
-                    if (distB < 40) {
-                        const pinch = (config.baffleDrop / 11.5) * (1 - distB / 40);
-                        currentY += (p + ih - currentY) * pinch * 0.8;
-                    }
-                });
+                if (relativeX > 0) {
+                    BAFFLES.forEach(pos => {
+                        const distB = Math.abs(relativeX - pos) * barnW;
+                        if (distB < 40) {
+                            const pinch = (config.baffleDrop / 11.5) * (1 - distB / 40);
+                            currentY += (p + ih - currentY) * pinch * 0.8;
+                        }
+                    });
+                }
 
                 const dashOffset = (time * vel * 0.05) % 40;
                 ctxSide.setLineDash([15, 25]);
@@ -147,35 +176,49 @@ function drawSide(vel) {
         ctxSide.setLineDash([]);
     }
 
+    // 5. Passive Vent (Exit Wall)
     if (config.passiveOpen) {
         const ventY = p + ih - (ih * (7 / 11.5)); 
         ctxSide.save();
         ctxSide.shadowBlur = 20;
         ctxSide.shadowColor = "#00d4ff";
         ctxSide.fillStyle = "rgba(0, 212, 255, 0.6)";
-        ctxSide.fillRect(p - 5, ventY - (ih*(2/11.5)), 10, ih*(2/11.5));
+        ctxSide.fillRect(p + totalW - 5, ventY - (ih*(2/11.5)), 10, ih*(2/11.5));
         ctxSide.restore();
     }
 
+    // 6. Baffles (Now only 2)
     ctxSide.fillStyle = "#ff4444";
-    [0.3, 0.6, 0.9].forEach(pos => {
-        ctxSide.fillRect(p + iw*pos, p, 4, ih*(config.baffleDrop/11.5));
+    BAFFLES.forEach(pos => {
+        ctxSide.fillRect(p + extW + barnW * pos, p, 4, ih*(config.baffleDrop/11.5));
     });
 }
 
 function drawTop(inT, outT, nh3, vel) {
     ctxTop.clearRect(0,0,topCanvas.width,topCanvas.height);
-    const p = 60; const iw = topCanvas.width - (p*2); const ih = topCanvas.height - (p*2);
-    let tGrad = ctxTop.createLinearGradient(p, 0, p+iw, 0);
+    const p = 60; 
+    const totalW = topCanvas.width - (p*2);
+    const extW = totalW * (EXTENSION_LENGTH / TOTAL_LENGTH);
+    const barnW = totalW - extW;
+    const ih = topCanvas.height - (p*2);
+
+    // Extension Zone
+    ctxTop.fillStyle = "rgba(0, 255, 100, 0.05)";
+    ctxTop.fillRect(p, p, extW, ih);
+    
+    // Heat Gradient in Barn
+    let tGrad = ctxTop.createLinearGradient(p + extW, 0, p + totalW, 0);
     tGrad.addColorStop(0, inT > 90 ? '#ff3300' : '#00ffff');
     tGrad.addColorStop(1, outT > 90 ? '#ff3300' : (outT > 85 ? '#ffcc00' : '#00ffaa'));
-    ctxTop.globalAlpha = 0.5; ctxTop.fillStyle = tGrad; ctxTop.fillRect(p, p, iw, ih); ctxTop.globalAlpha = 1.0;
+    ctxTop.globalAlpha = 0.5; ctxTop.fillStyle = tGrad; 
+    ctxTop.fillRect(p + extW, p, barnW, ih); 
+    ctxTop.globalAlpha = 1.0;
     
-    const hvlsPositions = [0.15, 0.45, 0.75];
-    hvlsPositions.forEach(pos => {
+    // HVLS Circles
+    HVLS_POS.forEach(pos => {
         ctxTop.strokeStyle = config.hvlsOn ? "rgba(0, 212, 255, 0.8)" : "#333";
         ctxTop.beginPath();
-        ctxTop.arc(p + iw*pos, p + ih/2, ih*0.15, 0, Math.PI*2);
+        ctxTop.arc(p + extW + barnW*pos, p + ih/2, ih*0.2, 0, Math.PI*2);
         ctxTop.stroke();
     });
 }
