@@ -48,7 +48,7 @@ canvas {
     border: 1px solid #2a2a2a;
     display: block;
     cursor: crosshair;
-    touch-action: none; /* Prevents scrolling while interacting with canvas */
+    touch-action: none; 
 }
 
 #viability-index { 
@@ -75,7 +75,6 @@ h4 { font-size: 0.65rem; color: #00d4ff; text-transform: uppercase; margin: 0 0 
 .metric-box { background: #13151a; padding: 6px 10px; margin-top: 4px; border-radius: 4px; font-size: 0.8rem; line-height: 1.4; }
 b { float: right; color: #fff; font-family: 'JetBrains Mono', monospace; }
 
-/* MOBILE RESPONSIVE OVERRIDES */
 @media (max-width: 900px) {
     body {
         flex-direction: column;
@@ -90,7 +89,7 @@ b { float: right; color: #fff; font-family: 'JetBrains Mono', monospace; }
         border-bottom: 1px solid #333;
     }
     #viewport {
-        height: 800px; /* Provides enough vertical space for both canvases */
+        height: 800px; 
         flex: none;
     }
 }

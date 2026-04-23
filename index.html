@@ -3,94 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ARISE v4.55 | Corrected Intake Vent</title>
+    <title>ARISE v4.55 | Biosecurity & Climate Sim</title>
     <link rel="stylesheet" href="style.css?v=4.55">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="sidebar">
-        <h1>ARISE v4.55 <br><small>Biosecurity & Climate Sim</small></h1>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h1 id="titleText">ARISE v4.55 <br><small>Biosecurity & Climate Sim</small></h1>
+            <button id="langToggle" class="toggle-btn" style="width: auto; padding: 5px 10px;">ES</button>
+        </div>
         
         <div id="viability-index">
-            STATUS: <span id="statusText">OPTIMAL</span>
+            <span id="statusLabel">STATUS</span>: <span id="statusText">OPTIMAL</span>
             <div id="statusIndicator"></div>
         </div>
 
         <div class="control-group">
-            <label>Birds: <span id="birdCountVal">2400</span></label>
+            <label><span id="labelBirds">Birds</span>: <span id="birdCountVal">2400</span></label>
             <input type="range" id="birdCount" min="0" max="3000" value="2400">
         </div>
 
         <div class="control-group">
-            <label>Fans (48" Cone): <span id="fanCountVal">4</span></label>
+            <label><span id="labelFans">Fans (48" Cone)</span>: <span id="fanCountVal">4</span></label>
             <input type="range" id="fanCount" min="1" max="6" value="4">
         </div>
 
         <div class="control-group">
-            <label>Baffle Drop (ft): <span id="baffleVal">5</span></label>
+            <label><span id="labelBaffle">Baffle Drop</span> (<span id="unitDist">ft</span>): <span id="baffleVal">5</span></label>
             <input type="range" id="baffleDrop" min="0" max="8" value="5">
         </div>
 
         <div class="control-group">
-            <label>HVLS 8' Ceiling Fans</label>
+            <label id="labelHvlsTitle">HVLS 8' Ceiling Fans</label>
             <button id="hvlsToggle" class="toggle-btn">HVLS OFF</button>
-            <label style="margin-top:8px;">HVLS Speed: <span id="hvlsSpeedVal">50</span>%</label>
+            <label style="margin-top:8px;"><span id="labelHvlsSpeed">HVLS Speed</span>: <span id="hvlsSpeedVal">50</span>%</label>
             <input type="range" id="hvlsSpeed" min="10" max="100" value="50">
         </div>
 
         <div class="control-group">
-            <label>Passive Vent (Intake Wall)</label>
+            <label id="labelLouver">Passive Vent (Intake Wall)</label>
             <button id="louverToggle" class="toggle-btn">CLOSED</button>
         </div>
 
         <div class="control-group">
-            <label>Airflow Visualization</label>
+            <label id="labelPaths">Airflow Visualization</label>
             <button id="pathToggle" class="toggle-btn">SHOW PATHS</button>
         </div>
 
         <div class="control-group">
-            <label>Ambient Temp: <span id="extTempVal">90</span>°F</label>
+            <label><span id="labelAmbient">Ambient Temp</span>: <span id="extTempVal">90</span><span id="unitTemp">°F</span></label>
             <input type="range" id="extTemp" min="75" max="105" value="90">
         </div>
 
         <div class="control-group">
-            <label>Ambient Humidity: <span id="extHumVal">85</span>%</label>
+            <label id="labelHum">Ambient Humidity: <span id="extHumVal">85</span>%</label>
             <input type="range" id="extHum" min="40" max="100" value="85">
         </div>
 
         <div class="control-group">
-            <label>Pre-Cooling Zone</label>
+            <label id="labelPrecool">Pre-Cooling Zone</label>
             <select id="preCooling">
-                <option value="0">None (Full Sun)</option>
-                <option value="4">Camo Net (20'arch)</option>
-                <option value="8">Trellis (20' arch)</option>
+                <option value="0" id="optNone">None (Full Sun)</option>
+                <option value="4" id="optCamo">Camo Net (20'arch)</option>
+                <option value="8" id="optTrellis">Trellis (20' arch)</option>
             </select>
         </div>
 
         <div id="metrics">
             <div class="metric-summary">
-                <h4>Exhaust Levels</h4>
-                <div class="metric-box">Temp: <b id="exTemp">--</b></div>
+                <h4 id="headExhaust">Exhaust Levels</h4>
+                <div class="metric-box"><span id="mTemp">Temp</span>: <b id="exTemp">--</b></div>
                 <div class="metric-box">Ammonia: <b id="exAmmonia">--</b></div>
-                <div class="metric-box">Humidity: <b id="exHum">--</b></div>
+                <div class="metric-box"><span id="mHum">Humidity</span>: <b id="exHum">--</b></div>
             </div>
 
             <div class="metric-summary" id="probeResults">
-                <h4>Point Probe</h4>
-                <div class="metric-box">Probe Temp: <b id="pTemp">--</b></div>
+                <h4 id="headProbe">Point Probe</h4>
+                <div class="metric-box"><span id="pTempLabel">Probe Temp</span>: <b id="pTemp">--</b></div>
                 <div class="metric-box">Probe NH3: <b id="pAmmonia">--</b></div>
-                <div class="metric-box">Probe Hum: <b id="pHum">--</b></div>
+                <div class="metric-box"><span id="pHumLabel">Probe Hum</span>: <b id="pHum">--</b></div>
             </div>
         </div>
     </div>
 
     <div id="viewport">
         <div class="canvas-container">
-            <h3>Side View (100' Barn + 20' Arch)</h3>
+            <h3 id="viewSide">Side View (100' Barn + 20' Arch)</h3>
             <canvas id="sideView"></canvas>
         </div>
         <div class="canvas-container">
-            <h3>Overhead View (Airspeed & Thermal)</h3>
+            <h3 id="viewTop">Overhead View (Airspeed & Thermal)</h3>
             <canvas id="topView"></canvas>
         </div>
     </div>

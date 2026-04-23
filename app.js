@@ -3,17 +3,42 @@ const ctxSide = sideCanvas.getContext('2d');
 const topCanvas = document.getElementById('topView');
 const ctxTop = topCanvas.getContext('2d');
 
+let lang = 'EN';
+
+const i18n = {
+    EN: {
+        title: "ARISE v4.55 <br><small>Biosecurity & Climate Sim</small>",
+        status: "STATUS", opt: "OPTIMAL", str: "STRESS", crit: "CRITICAL",
+        birds: "Birds", fans: "Fans (48\" Cone)", baffle: "Baffle Drop",
+        unitD: "ft", unitT: "°F", hvlsTitle: "HVLS 8' Ceiling Fans",
+        hvlsSpd: "HVLS Speed", louver: "Passive Vent (Intake Wall)",
+        paths: "Airflow Visualization", ambient: "Ambient Temp", hum: "Ambient Humidity",
+        precool: "Pre-Cooling Zone", exHead: "Exhaust Levels", pbHead: "Point Probe",
+        mTemp: "Temp", mHum: "Humidity", pTemp: "Probe Temp", pHum: "Probe Hum",
+        vSide: "Side View (100' Barn + 20' Arch)", vTop: "Overhead View (Airspeed & Thermal)",
+        closed: "CLOSED", open: "OPEN", showP: "SHOW PATHS", hideP: "HIDE PATHS",
+        hOn: "HVLS ON", hOff: "HVLS OFF",
+        opt1: "None (Full Sun)", opt2: "Camo Net (20'arch)", opt3: "Trellis (20' arch)"
+    },
+    ES: {
+        title: "ARISE v4.55 <br><small>Sim. de Clima y Bioseguridad</small>",
+        status: "ESTADO", opt: "ÓPTIMO", str: "ESTRÉS", crit: "CRÍTICO",
+        birds: "Aves", fans: "Ventiladores (Cono 48\")", baffle: "Caída de Deflector",
+        unitD: "m", unitT: "°C", hvlsTitle: "Ventiladores de Techo HVLS 8'",
+        hvlsSpd: "Velocidad HVLS", louver: "Ventilación Pasiva (Pared de Entrada)",
+        paths: "Visualización de Flujo", ambient: "Temp. Ambiente", hum: "Humedad Ambiente",
+        precool: "Zona de Pre-enfriamiento", exHead: "Niveles de Extracción", pbHead: "Sonda de Punto",
+        mTemp: "Temp", mHum: "Humedad", pTemp: "Temp Sonda", pHum: "Hum Sonda",
+        vSide: "Vista Lateral (Nave 30m + Arco 6m)", vTop: "Vista Superior (Velocidad y Térmica)",
+        closed: "CERRADO", open: "ABIERTO", showP: "MOSTRAR FLUJO", hideP: "OCULTAR FLUJO",
+        hOn: "HVLS ENCENDIDO", hOff: "HVLS APAGADO",
+        opt1: "Ninguno (Pleno Sol)", opt2: "Red de Camuflaje", opt3: "Enrejado"
+    }
+};
+
 let config = {
-    birds: 2400,
-    fans: 4,
-    baffleDrop: 5,
-    extTemp: 90,
-    extHum: 85,
-    preCoolEffect: 0,
-    passiveOpen: false,
-    showPaths: false,
-    hvlsOn: false,
-    hvlsSpeed: 50
+    birds: 2400, fans: 4, baffleDrop: 5, extTemp: 90, extHum: 85,
+    preCoolEffect: 0, passiveOpen: false, showPaths: false, hvlsOn: false, hvlsSpeed: 50
 };
 
 const BARN_LENGTH = 100;
@@ -21,6 +46,45 @@ const EXTENSION_LENGTH = 20;
 const TOTAL_LENGTH = BARN_LENGTH + EXTENSION_LENGTH;
 const BAFFLES = [0.34, 0.67]; 
 const HVLS_POS = [0.17, 0.505, 0.835]; 
+
+function fToC(f) { return (f - 32) * 5 / 9; }
+function ftToM(ft) { return ft * 0.3048; }
+
+function updateLanguageUI() {
+    const t = i18n[lang];
+    document.getElementById('titleText').innerHTML = t.title;
+    document.getElementById('statusLabel').innerText = t.status;
+    document.getElementById('labelBirds').innerText = t.birds;
+    document.getElementById('labelFans').innerText = t.fans;
+    document.getElementById('labelBaffle').innerText = t.baffle;
+    document.getElementById('unitDist').innerText = t.unitD;
+    document.getElementById('unitTemp').innerText = t.unitT;
+    document.getElementById('labelHvlsTitle').innerText = t.hvlsTitle;
+    document.getElementById('labelHvlsSpeed').innerText = t.hvlsSpd;
+    document.getElementById('labelLouver').innerText = t.louver;
+    document.getElementById('labelPaths').innerText = t.paths;
+    document.getElementById('labelAmbient').innerText = t.ambient;
+    document.getElementById('labelHum').innerText = t.hum;
+    document.getElementById('labelPrecool').innerText = t.precool;
+    document.getElementById('headExhaust').innerText = t.exHead;
+    document.getElementById('headProbe').innerText = t.pbHead;
+    document.getElementById('mTemp').innerText = t.mTemp;
+    document.getElementById('mHum').innerText = t.mHum;
+    document.getElementById('pTempLabel').innerText = t.pTemp;
+    document.getElementById('pHumLabel').innerText = t.pHum;
+    document.getElementById('viewSide').innerText = t.vSide;
+    document.getElementById('viewTop').innerText = t.vTop;
+    document.getElementById('optNone').innerText = t.opt1;
+    document.getElementById('optCamo').innerText = t.opt2;
+    document.getElementById('optTrellis').innerText = t.opt3;
+
+    // Refresh button states
+    document.getElementById('hvlsToggle').innerText = config.hvlsOn ? t.hOn : t.hOff;
+    document.getElementById('louverToggle').innerText = config.passiveOpen ? t.open : t.closed;
+    document.getElementById('pathToggle').innerText = config.showPaths ? t.hideP : t.showP;
+    
+    update();
+}
 
 function resize() {
     sideCanvas.width = sideCanvas.clientWidth;
@@ -43,7 +107,17 @@ function update() {
     const ammoniaTotal = ((config.birds * 0.0005) / totalCFM) * 1000000;
     const exitHum = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM / 1000));
 
-    document.getElementById('exTemp').innerText = exitTemp.toFixed(1) + "°F";
+    // Metric Toggle display
+    if (lang === 'ES') {
+        document.getElementById('exTemp').innerText = fToC(exitTemp).toFixed(1) + "°C";
+        document.getElementById('baffleVal').innerText = ftToM(config.baffleDrop).toFixed(1);
+        document.getElementById('extTempVal').innerText = fToC(config.extTemp).toFixed(0);
+    } else {
+        document.getElementById('exTemp').innerText = exitTemp.toFixed(1) + "°F";
+        document.getElementById('baffleVal').innerText = config.baffleDrop;
+        document.getElementById('extTempVal').innerText = config.extTemp;
+    }
+
     document.getElementById('exAmmonia').innerText = ammoniaTotal.toFixed(1) + " ppm";
     document.getElementById('exHum').innerText = Math.min(100, exitHum).toFixed(1) + "%";
 
@@ -55,12 +129,13 @@ function update() {
 function updateViability(temp, nh3) {
     const indicator = document.getElementById('statusIndicator');
     const text = document.getElementById('statusText');
+    const t = i18n[lang];
     if (temp > 95 || nh3 > 25) {
-        indicator.style.background = "#ff4444"; text.innerText = "CRITICAL"; text.style.color = "#ff4444";
+        indicator.style.background = "#ff4444"; text.innerText = t.crit; text.style.color = "#ff4444";
     } else if (temp > 88 || nh3 > 15) {
-        indicator.style.background = "#ffcc00"; text.innerText = "STRESS"; text.style.color = "#ffcc00";
+        indicator.style.background = "#ffcc00"; text.innerText = t.str; text.style.color = "#ffcc00";
     } else {
-        indicator.style.background = "#44ffaa"; text.innerText = "OPTIMAL"; text.style.color = "#44ffaa";
+        indicator.style.background = "#44ffaa"; text.innerText = t.opt; text.style.color = "#44ffaa";
     }
 }
 
@@ -80,7 +155,11 @@ function handleInteraction(e, canvas) {
     const localA = (((config.birds * 0.0005) / totalCFM) * 1000000) * pct;
     const localH = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM/1000)) * pct;
 
-    document.getElementById('pTemp').innerText = localT.toFixed(1) + "°F";
+    if (lang === 'ES') {
+        document.getElementById('pTemp').innerText = fToC(localT).toFixed(1) + "°C";
+    } else {
+        document.getElementById('pTemp').innerText = localT.toFixed(1) + "°F";
+    }
     document.getElementById('pAmmonia').innerText = localA.toFixed(1) + " ppm";
     document.getElementById('pHum').innerText = Math.min(100, localH).toFixed(1) + "%";
 }
@@ -93,16 +172,12 @@ function drawSide(vel) {
     const barnW = totalW - extW;
     const ih = sideCanvas.height - (p*2);
     
-    // Extension
     ctxSide.strokeStyle = "#444"; ctxSide.setLineDash([5, 5]);
     ctxSide.strokeRect(p, p, extW, ih); ctxSide.setLineDash([]);
     ctxSide.fillStyle = "rgba(0, 255, 100, 0.05)"; ctxSide.fillRect(p, p, extW, ih);
-
-    // Barn
     ctxSide.fillStyle = `rgba(0, 150, 255, ${Math.min(vel/1000, 0.3)})`;
     ctxSide.fillRect(p + extW, p, barnW, ih);
 
-    // HVLS
     const postH = ih * (4 / 11.5);
     HVLS_POS.forEach(pos => {
         const hX = p + extW + barnW * pos;
@@ -115,7 +190,6 @@ function drawSide(vel) {
         }
     });
 
-    // Passive Vent Glow (Intake Wall)
     if (config.passiveOpen) {
         const vY = p + ih - (ih * (7 / 11.5)); 
         ctxSide.save(); ctxSide.shadowBlur = 20; ctxSide.shadowColor = "#00d4ff";
@@ -166,16 +240,14 @@ function drawTop(inT, outT, vel) {
     g.addColorStop(1, outT > 90 ? '#ff3300' : (outT > 85 ? '#ffcc00' : '#00ffaa'));
     ctxTop.globalAlpha = 0.4; ctxTop.fillStyle = g; ctxTop.fillRect(p + extW, p, barnW, ih); ctxTop.globalAlpha = 1.0;
     
-    // Passive Vent Glow (Intake Wall - 20' wide)
     if (config.passiveOpen) {
         ctxTop.save(); ctxTop.shadowBlur = 15; ctxTop.shadowColor = "#00d4ff";
         ctxTop.fillStyle = "#00d4ff";
-        const vW = ih * (20 / 24); // Vent is 20' of 24' width
+        const vW = ih * (20 / 24); 
         ctxTop.fillRect(p + extW - 3, p + (ih - vW) / 2, 6, vW);
         ctxTop.restore();
     }
 
-    // Airspeed Particles
     ctxTop.fillStyle = "rgba(255, 255, 255, 0.6)";
     for(let i=0; i<40; i++) {
         let x = (p + extW + (i*50 + Date.now()*0.006*vel)) % barnW + p + extW;
@@ -194,16 +266,35 @@ window.addEventListener('resize', resize);
     c.addEventListener('touchstart', (e) => handleInteraction(e, c), {passive: true});
 });
 
+document.getElementById('langToggle').onclick = (e) => {
+    lang = lang === 'EN' ? 'ES' : 'EN';
+    e.target.innerText = lang === 'EN' ? 'ES' : 'EN';
+    updateLanguageUI();
+};
+
 document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.value; document.getElementById('birdCountVal').innerText = e.target.value; update(); };
 document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.value; document.getElementById('fanCountVal').innerText = e.target.value; update(); };
-document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.target.value; document.getElementById('baffleVal').innerText = e.target.value; update(); };
-document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); document.getElementById('extTempVal').innerText = e.target.value; update(); };
+document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.target.value; update(); };
+document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); update(); };
 document.getElementById('extHum').oninput = (e) => { config.extHum = e.target.value; document.getElementById('extHumVal').innerText = e.target.value; update(); };
 document.getElementById('hvlsSpeed').oninput = (e) => { config.hvlsSpeed = e.target.value; document.getElementById('hvlsSpeedVal').innerText = e.target.value; update(); };
 document.getElementById('preCooling').onchange = (e) => { config.preCoolEffect = parseInt(e.target.value); update(); };
-document.getElementById('hvlsToggle').onclick = (e) => { config.hvlsOn = !config.hvlsOn; e.target.innerText = config.hvlsOn ? "HVLS ON" : "HVLS OFF"; e.target.classList.toggle('active'); update(); };
-document.getElementById('louverToggle').onclick = (e) => { config.passiveOpen = !config.passiveOpen; e.target.innerText = config.passiveOpen ? "OPEN" : "CLOSED"; e.target.classList.toggle('active'); update(); };
-document.getElementById('pathToggle').onclick = (e) => { config.showPaths = !config.showPaths; e.target.innerText = config.showPaths ? "HIDE PATHS" : "SHOW PATHS"; e.target.classList.toggle('active'); update(); };
+
+document.getElementById('hvlsToggle').onclick = (e) => { 
+    config.hvlsOn = !config.hvlsOn; 
+    e.target.classList.toggle('active'); 
+    updateLanguageUI(); 
+};
+document.getElementById('louverToggle').onclick = (e) => { 
+    config.passiveOpen = !config.passiveOpen; 
+    e.target.classList.toggle('active'); 
+    updateLanguageUI(); 
+};
+document.getElementById('pathToggle').onclick = (e) => { 
+    config.showPaths = !config.showPaths; 
+    e.target.classList.toggle('active'); 
+    updateLanguageUI(); 
+};
 
 resize();
 setInterval(update, 50);
