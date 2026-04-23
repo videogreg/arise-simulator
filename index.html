@@ -3,17 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ARISE v4.55 | Biosecurity & Climate Sim</title>
+    <title>ARISE v4.57 | Biosecurity & Climate Sim</title>
     <link rel="stylesheet" href="style.css?v=4.55">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="sidebar">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <h1 id="titleText">ARISE v4.55 <br><small>Biosecurity & Climate Sim</small></h1>
-            <button id="langToggle" class="toggle-btn" style="width: auto; padding: 5px 10px;">ES</button>
-        </div>
+        <h1 id="titleText">ARISE v4.55 <br><small>Biosecurity & Climate Sim</small></h1>
         
+        <div class="lang-container">
+            <div class="lang-slider" id="langToggle">
+                <div class="lang-option active" id="optEN">English</div>
+                <div class="lang-option" id="optES">Español</div>
+                <div class="slider-knob"></div>
+            </div>
+        </div>
+
         <div id="viability-index">
             <span id="statusLabel">STATUS</span>: <span id="statusText">OPTIMAL</span>
             <div id="statusIndicator"></div>

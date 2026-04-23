@@ -37,8 +37,16 @@ const i18n = {
 };
 
 let config = {
-    birds: 2400, fans: 4, baffleDrop: 5, extTemp: 90, extHum: 85,
-    preCoolEffect: 0, passiveOpen: false, showPaths: false, hvlsOn: false, hvlsSpeed: 50
+    birds: 2400,
+    fans: 4,
+    baffleDrop: 5,
+    extTemp: 90,
+    extHum: 85,
+    preCoolEffect: 0,
+    passiveOpen: false,
+    showPaths: false,
+    hvlsOn: false,
+    hvlsSpeed: 50
 };
 
 const BARN_LENGTH = 100;
@@ -78,11 +86,16 @@ function updateLanguageUI() {
     document.getElementById('optCamo').innerText = t.opt2;
     document.getElementById('optTrellis').innerText = t.opt3;
 
-    // Refresh button states
+    // Button states
     document.getElementById('hvlsToggle').innerText = config.hvlsOn ? t.hOn : t.hOff;
     document.getElementById('louverToggle').innerText = config.passiveOpen ? t.open : t.closed;
     document.getElementById('pathToggle').innerText = config.showPaths ? t.hideP : t.showP;
     
+    // Toggle Visuals
+    document.getElementById('optEN').classList.toggle('active', lang === 'EN');
+    document.getElementById('optES').classList.toggle('active', lang === 'ES');
+    document.querySelector('.slider-knob').style.left = lang === 'EN' ? '2px' : 'calc(50% + 2px)';
+
     update();
 }
 
@@ -107,7 +120,7 @@ function update() {
     const ammoniaTotal = ((config.birds * 0.0005) / totalCFM) * 1000000;
     const exitHum = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM / 1000));
 
-    // Metric Toggle display
+    // Dynamic Unit Display
     if (lang === 'ES') {
         document.getElementById('exTemp').innerText = fToC(exitTemp).toFixed(1) + "°C";
         document.getElementById('baffleVal').innerText = ftToM(config.baffleDrop).toFixed(1);
@@ -266,9 +279,9 @@ window.addEventListener('resize', resize);
     c.addEventListener('touchstart', (e) => handleInteraction(e, c), {passive: true});
 });
 
-document.getElementById('langToggle').onclick = (e) => {
-    lang = lang === 'EN' ? 'ES' : 'EN';
-    e.target.innerText = lang === 'EN' ? 'ES' : 'EN';
+// Event Listeners for Controls
+document.getElementById('langToggle').onclick = () => {
+    lang = (lang === 'EN') ? 'ES' : 'EN';
     updateLanguageUI();
 };
 
