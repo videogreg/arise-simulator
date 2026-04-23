@@ -7,7 +7,7 @@ let lang = 'EN';
 
 const i18n = {
     EN: {
-        title: "ARISE v4.55 <br><small>Biosecurity & Climate Sim</small>",
+        title: "ARISE v4.57 <br><small>Biosecurity & Climate Sim</small>",
         status: "STATUS", opt: "OPTIMAL", str: "STRESS", crit: "CRITICAL",
         birds: "Birds", fans: "Fans (48\" Cone)", baffle: "Baffle Drop",
         unitD: "ft", unitT: "°F", hvlsTitle: "HVLS 8' Ceiling Fans",
@@ -21,7 +21,7 @@ const i18n = {
         opt1: "None (Full Sun)", opt2: "Camo Net (20'arch)", opt3: "Trellis (20' arch)"
     },
     ES: {
-        title: "ARISE v4.55 <br><small>Sim. de Clima y Bioseguridad</small>",
+        title: "ARISE v4.57 <br><small>Sim. de Clima y Bioseguridad</small>",
         status: "ESTADO", opt: "ÓPTIMO", str: "ESTRÉS", crit: "CRÍTICO",
         birds: "Aves", fans: "Ventiladores (Cono 48\")", baffle: "Caída de Deflector",
         unitD: "m", unitT: "°C", hvlsTitle: "Ventiladores de Techo HVLS 8'",
@@ -86,12 +86,10 @@ function updateLanguageUI() {
     document.getElementById('optCamo').innerText = t.opt2;
     document.getElementById('optTrellis').innerText = t.opt3;
 
-    // Button states
     document.getElementById('hvlsToggle').innerText = config.hvlsOn ? t.hOn : t.hOff;
     document.getElementById('louverToggle').innerText = config.passiveOpen ? t.open : t.closed;
     document.getElementById('pathToggle').innerText = config.showPaths ? t.hideP : t.showP;
     
-    // Toggle Visuals
     document.getElementById('optEN').classList.toggle('active', lang === 'EN');
     document.getElementById('optES').classList.toggle('active', lang === 'ES');
     document.querySelector('.slider-knob').style.left = lang === 'EN' ? '2px' : 'calc(50% + 2px)';
@@ -120,7 +118,12 @@ function update() {
     const ammoniaTotal = ((config.birds * 0.0005) / totalCFM) * 1000000;
     const exitHum = parseFloat(config.extHum) + (config.birds * 0.01 / (totalCFM / 1000));
 
-    // Dynamic Unit Display
+    // Update Slider Labels
+    document.getElementById('birdCountVal').innerText = config.birds;
+    document.getElementById('fanCountVal').innerText = config.fans;
+    document.getElementById('hvlsSpeedVal').innerText = config.hvlsSpeed;
+    document.getElementById('extHumVal').innerText = config.extHum;
+
     if (lang === 'ES') {
         document.getElementById('exTemp').innerText = fToC(exitTemp).toFixed(1) + "°C";
         document.getElementById('baffleVal').innerText = ftToM(config.baffleDrop).toFixed(1);
@@ -279,18 +282,17 @@ window.addEventListener('resize', resize);
     c.addEventListener('touchstart', (e) => handleInteraction(e, c), {passive: true});
 });
 
-// Event Listeners for Controls
 document.getElementById('langToggle').onclick = () => {
     lang = (lang === 'EN') ? 'ES' : 'EN';
     updateLanguageUI();
 };
 
-document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.value; document.getElementById('birdCountVal').innerText = e.target.value; update(); };
-document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.value; document.getElementById('fanCountVal').innerText = e.target.value; update(); };
+document.getElementById('birdCount').oninput = (e) => { config.birds = e.target.value; update(); };
+document.getElementById('fanCount').oninput = (e) => { config.fans = e.target.value; update(); };
 document.getElementById('baffleDrop').oninput = (e) => { config.baffleDrop = e.target.value; update(); };
 document.getElementById('extTemp').oninput = (e) => { config.extTemp = parseFloat(e.target.value); update(); };
-document.getElementById('extHum').oninput = (e) => { config.extHum = e.target.value; document.getElementById('extHumVal').innerText = e.target.value; update(); };
-document.getElementById('hvlsSpeed').oninput = (e) => { config.hvlsSpeed = e.target.value; document.getElementById('hvlsSpeedVal').innerText = e.target.value; update(); };
+document.getElementById('extHum').oninput = (e) => { config.extHum = e.target.value; update(); };
+document.getElementById('hvlsSpeed').oninput = (e) => { config.hvlsSpeed = e.target.value; update(); };
 document.getElementById('preCooling').onchange = (e) => { config.preCoolEffect = parseInt(e.target.value); update(); };
 
 document.getElementById('hvlsToggle').onclick = (e) => { 
